@@ -1,3 +1,4 @@
 /target
 templates/*.css
 tailwind.config.js # optional
+.env
