@@ -1,12 +1,12 @@
 use contact_form::*;
 #[tokio::test]
-async fn it_works() {
+async fn health_check_works() {
     // arrange
-    spawn_app().await;
+    let address = spawn_app().await;
     // act
     let client = reqwest::Client::new();
     let response = client
-        .get("http://127.0.0.1:8000/health_check")
+        .get(format!("http://{}/health_check", address))
         .send()
         .await
         .expect("failed to execute a request to our server from reqwest client");
@@ -16,11 +16,59 @@ async fn it_works() {
     assert_eq!(response.content_length(), Some(0));
 }
 
-pub async fn spawn_app() {
-    let application = build_router().unwrap();
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000")
+#[tokio::test]
+async fn subscribe_returns_a_200_for_valid_form_data() {
+    // arrange
+    let address = spawn_app().await;
+
+    let client = reqwest::Client::new();
+
+    // act
+    let mut params = std::collections::HashMap::new();
+    params.insert("name", "hamada");
+    params.insert("email", "hamada@yahoo.com");
+    let response = client
+        .post(format!("http://{}/", address))
+        .form(&params)
+        .send()
         .await
-        .unwrap();
+        .expect("failed to execute a request to our server from reqwest client");
+
+    // same as below
+
+    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST#example
+    // A simple form using the default application/x-www-form-urlencoded content type:
+    // HTTP
+    // Copy to Clipboard
+    // POST /test HTTP/1.1
+    // Host: foo.example
+    // Content-Type: application/x-www-form-urlencoded
+    // Content-Length: 27
+    // field1=value1&field2=value2
+
+    // https://www.w3schools.com/tags/ref_urlencode.ASP
+    // "space" -> "%20"
+    // "@" -> "%40"
+
+    // let response = client
+    //     .post(format!("http://{}/", address))
+    //     .header("Content-Type", "application/x-www-form-urlencoded")
+    //     .body("name=hamada&email=hamada%40yahoo.com")
+    //     .send()
+    //     .await
+    //     .expect("failed to execute a request to our server from reqwest client");
+
+    // dbg!(&response);
+
+    //assert
+    assert_eq!(200, response.status().as_u16());
+}
+
+#[tokio::test]
+async fn subscribe_returns_a_400_when_data_is_missing() {
+    todo!()
+}
+
 async fn spawn_app() -> String {
     let application = build_router().unwrap();
     //                                                                   random port
