@@ -1,10 +1,13 @@
+use std::collections::HashMap;
+
 use contact_form::*;
+use reqwest::{Client, StatusCode};
 #[tokio::test]
 async fn health_check_works() {
     // arrange
     let address = spawn_app().await;
     // act
-    let client = reqwest::Client::new();
+    let client = Client::new();
     let response = client
         .get(format!("http://{}/health_check", address))
         .send()
@@ -21,14 +24,14 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
     // arrange
     let address = spawn_app().await;
 
-    let client = reqwest::Client::new();
+    let client = Client::new();
 
     // act
-    let mut params = std::collections::HashMap::new();
+    let mut params = HashMap::new();
     params.insert("name", "hamada");
     params.insert("email", "hamada@yahoo.com");
     let response = client
-        .post(format!("http://{}/", address))
+        .post(format!("http://{}/subscriptions", address))
         .form(&params)
         .send()
         .await
@@ -61,12 +64,43 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
     // dbg!(&response);
 
     //assert
-    assert_eq!(200, response.status().as_u16());
+    assert_eq!(response.status(), StatusCode::OK);
 }
 
 #[tokio::test]
-async fn subscribe_returns_a_400_when_data_is_missing() {
-    todo!()
+async fn subscribe_returns_a_422_when_data_is_missing() {
+    // arrange
+    let address = spawn_app().await;
+
+    let client = Client::new();
+
+    // act
+    let test_cases = vec![
+        (
+            HashMap::from([("", "hamada@yahoo.com")]),
+            String::from("missing name"),
+        ),
+        (
+            HashMap::from([("hamada", "")]),
+            String::from("missing email"),
+        ),
+        (HashMap::from([("", "")]), String::from("missing both")),
+    ];
+    for (body, error_message) in test_cases {
+        let response = client
+            .post(format!("http://{}/subscriptions", address))
+            .form(&body)
+            .send()
+            .await
+            .expect("failed to execute a request to our server from reqwest client");
+
+        assert_eq!(
+            response.status(),
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "API did not fail with 400 Bad Request when the payload was {}.",
+            error_message
+        );
+    }
 }
 
 async fn spawn_app() -> String {

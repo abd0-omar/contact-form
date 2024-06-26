@@ -1,11 +1,16 @@
 mod routes;
 use crate::routes::form::accept_form;
 use crate::routes::index::index;
-use axum::{http::StatusCode, routing::get, Router};
+use axum::{
+    http::StatusCode,
+    routing::{get, post},
+    Router,
+};
 
 pub fn build_router() -> Result<Router, Box<dyn std::error::Error>> {
     let app = Router::new()
-        .route("/", get(index).post(accept_form))
+        .route("/", get(index))
+        .route("/subscriptions", post(accept_form))
         .route("/health_check", get(health_check))
         .route("/path", get(greet))
         .route("/path/:name", get(greet))
