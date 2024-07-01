@@ -1,4 +1,4 @@
-use contact_form::build_router;
+use contact_form::startup::build_router;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use contact_form::*;
 use reqwest::{Client, StatusCode};
+use startup::build_router;
 #[tokio::test]
 async fn health_check_works() {
     // arrange
