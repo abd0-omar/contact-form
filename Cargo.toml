@@ -19,6 +19,7 @@ axum = "0.7.5"
 serde = { version = "1.0.203", features = ["derive"] }
 tokio = { version = "1.38.0", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["fs"] }
+sqlx = { version = "0.7", default-features = false, features = ["runtime-tokio-rustls", "macros", "postgres", "uuid", "chrono", "migrate"] }
 
 [dev-dependencies]
 reqwest = { version = "0.12.4"}
