@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
+use configuration::get_configuration;
 use contact_form::*;
 use reqwest::{Client, StatusCode};
+use sqlx::postgres::PgPoolOptions;
 use startup::build_router;
 #[tokio::test]
 async fn health_check_works() {
@@ -20,10 +22,26 @@ async fn health_check_works() {
     assert_eq!(response.content_length(), Some(0));
 }
 
+// insert table_name into values(_,_);
+// select
+#[derive(sqlx::FromRow)]
+struct SubscriberInfo {
+    name: String,
+    email: String,
+}
+
 #[tokio::test]
 async fn subscribe_returns_a_200_for_valid_form_data() {
     // arrange
     let address = spawn_app().await;
+    let configuration = get_configuration().expect("Failed to read configuation");
+    let db_url = configuration.database.db_connection_string();
+
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&db_url)
+        .await
+        .unwrap();
 
     let client = Client::new();
 
@@ -66,6 +84,23 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 
     //assert
     assert_eq!(response.status(), StatusCode::OK);
+
+    // letsaved= sqlx::query!("SELECTemail,nameFROMsubscriptions",)
+    // .fetch_one(&mut connection)
+    // .await
+    // .expect("Failedtofetchsaved subscription.");
+
+    // no query_as! cuz my pc would be too slow for compile times
+    // but may do it if it is needed in the CI.
+    let query: SubscriberInfo = sqlx::query_as("SELECT email, name FROM subscriptions LIMIT 1")
+        .fetch_one(&pool)
+        .await
+        .expect(
+            "Failed to fetch subscriber's info, maybe because he's not in the db or something else",
+        );
+
+    assert_eq!(query.name, "hamada");
+    assert_eq!(query.email, "hamada@yahoo.com");
 }
 
 #[tokio::test]
@@ -105,7 +140,15 @@ async fn subscribe_returns_a_422_when_data_is_missing() {
 }
 
 async fn spawn_app() -> String {
-    let application = build_router().unwrap();
+    let configuration = get_configuration().expect("failed to read configuration");
+    let db_url = configuration.database.db_connection_string();
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&db_url)
+        .await
+        .unwrap();
+
+    let application = build_router(pool).unwrap();
     //                                                                   random port
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();

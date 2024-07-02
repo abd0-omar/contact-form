@@ -15,6 +15,7 @@ if ! [ -x "$(command -v sqlx)" ]; then
   exit 1
 fi
 
+# not the actual user and password btw
 # Check if a custom user has been set, otherwise default to 'postgres'
 DB_USER=${POSTGRES_USER:=postgres}
 # Check if a custom password has been set, otherwise default to 'password'
@@ -46,7 +47,7 @@ then
       -e POSTGRES_DB=${DB_NAME} \
       -p "${DB_PORT}":5432 \
       -d \
-      --name "postgres_$(date '+%s')" \
+      --name ${CONTAINER_NAME}\
       postgres -N 1000
       # ^ Increased maximum number of connections for testing purposes
 fi
