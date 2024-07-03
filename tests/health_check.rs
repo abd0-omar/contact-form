@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
-use configuration::get_configuration;
+use configuration::{get_configuration, DatabaseSettings};
 use contact_form::*;
 use reqwest::{Client, StatusCode};
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::{Connection, Executor, PgConnection, PgPool};
 use startup::build_router;
+use uuid::Uuid;
 #[tokio::test]
 async fn health_check_works() {
     // arrange
@@ -85,7 +86,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
     // no query_as! cuz my pc would be too slow for compile times
     // but may do it if it is needed in the CI.
     let query: SubscriberInfo = sqlx::query_as(
-        "SELECT email, name FROM subscriptions ORDER BY subscribed_at DESC LIMIT 1",
+        "SELECT email, name FROM subscriptions",
     )
     .fetch_one(&app.pool)
     .await
@@ -139,13 +140,16 @@ pub struct TestApp {
 }
 
 async fn spawn_app() -> TestApp {
-    let configuration = get_configuration().expect("failed to read configuration");
-    let db_url = configuration.database.db_connection_string();
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&db_url)
-        .await
-        .unwrap();
+    let mut configuration = get_configuration().expect("failed to read configuration");
+    configuration.database.database_name = Uuid::new_v4().to_string();
+    // create table from the random db name you just generated
+    let pool = configure_database(&configuration.database).await;
+
+    // let pool = PgPoolOptions::new()
+    //     .max_connections(5)
+    //     .connect(&co)
+    //     .await
+    //     .unwrap();
 
     let application = build_router(pool.clone()).unwrap();
     //                                                                   random port
@@ -158,4 +162,31 @@ async fn spawn_app() -> TestApp {
         address: format!("127.0.0.1:{}", port),
         pool,
     }
+}
+
+async fn configure_database(database: &DatabaseSettings) -> PgPool {
+    // it's really a pool, it's just one connection, so connection would be a better name
+    // but we'll leave it as pool
+
+    // create database without a name, `PgConnection` just a connection
+    let mut pool = PgConnection::connect(&database.connection_string_without_db())
+        .await
+        .expect("Failed to connect to postgres");
+
+    // create database with our random database name
+    pool.execute(format!(r#"CREATE DATABASE "{}";"#, database.database_name).as_str())
+        .await
+        .expect("Failed to create database");
+
+    // migrate our new random database
+    // `PgPool`
+    let pool = PgPool::connect(&database.connection_string_with_db())
+        .await
+        .expect("Failed to connect to postgres");
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("Failed to migrate the database");
+
+    pool
 }

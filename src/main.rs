@@ -4,7 +4,7 @@ use sqlx::postgres::PgPoolOptions;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let configuration = get_configuration().expect("failed to read configuration");
-    let db_url = configuration.database.db_connection_string();
+    let db_url = configuration.database.connection_string_with_db();
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&db_url)
