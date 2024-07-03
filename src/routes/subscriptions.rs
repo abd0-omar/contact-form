@@ -9,6 +9,8 @@ use serde::Deserialize;
 use chrono::Utc;
 use uuid::Uuid;
 
+use axum::http::StatusCode;
+
 #[derive(Deserialize, Debug, Template, sqlx::FromRow)]
 #[template(path = "succession.html")]
 pub struct Input {
@@ -24,7 +26,7 @@ pub async fn accept_form(
     println!("100 ms have elapsed");
     dbg!(&input);
 
-    let _query = sqlx::query(
+    match sqlx::query(
         "INSERT INTO subscriptions (id, name, email, subscribed_at) VALUES ($1, $2, $3, $4)",
     )
     .bind(Uuid::new_v4())
@@ -34,13 +36,22 @@ pub async fn accept_form(
     .bind(3)
     .execute(&pool)
     .await
-    .expect("query to insert user failed");
+    {
+        Ok(o) => eprintln!("new subscriber added! {:?}", o),
+        Err(e) => {
+            return (
+                eprintln!("failed to execute query: {}", e),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )
+                .into_response();
+        }
+    };
 
     let template = Input {
         name: input.name,
         email: input.email,
     };
-    template
+    template.into_response()
 }
 
 // // FromRequest example, aka custom extractor

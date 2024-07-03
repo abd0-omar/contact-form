@@ -3,16 +3,17 @@ use std::collections::HashMap;
 use configuration::get_configuration;
 use contact_form::*;
 use reqwest::{Client, StatusCode};
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use startup::build_router;
 #[tokio::test]
 async fn health_check_works() {
     // arrange
-    let address = spawn_app().await;
-    // act
+    let app = spawn_app().await;
     let client = Client::new();
+
+    // act
     let response = client
-        .get(format!("http://{}/health_check", address))
+        .get(format!("http://{}/health_check", &app.address))
         .send()
         .await
         .expect("failed to execute a request to our server from reqwest client");
@@ -24,7 +25,7 @@ async fn health_check_works() {
 
 // insert table_name into values(_,_);
 // select
-#[derive(sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow)]
 struct SubscriberInfo {
     name: String,
     email: String,
@@ -33,24 +34,15 @@ struct SubscriberInfo {
 #[tokio::test]
 async fn subscribe_returns_a_200_for_valid_form_data() {
     // arrange
-    let address = spawn_app().await;
-    let configuration = get_configuration().expect("Failed to read configuation");
-    let db_url = configuration.database.db_connection_string();
-
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&db_url)
-        .await
-        .unwrap();
-
+    let app = spawn_app().await;
     let client = Client::new();
 
     // act
     let mut params = HashMap::new();
-    params.insert("name", "hamada");
-    params.insert("email", "hamada@yahoo.com");
+    params.insert("name", "test0000");
+    params.insert("email", "test@remote_resever_0000.com");
     let response = client
-        .post(format!("http://{}/subscriptions", address))
+        .post(format!("http://{}/subscriptions", &app.address))
         .form(&params)
         .send()
         .await
@@ -92,22 +84,24 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 
     // no query_as! cuz my pc would be too slow for compile times
     // but may do it if it is needed in the CI.
-    let query: SubscriberInfo = sqlx::query_as("SELECT email, name FROM subscriptions LIMIT 1")
-        .fetch_one(&pool)
-        .await
-        .expect(
-            "Failed to fetch subscriber's info, maybe because he's not in the db or something else",
-        );
+    let query: SubscriberInfo = sqlx::query_as(
+        "SELECT email, name FROM subscriptions ORDER BY subscribed_at DESC LIMIT 1",
+    )
+    .fetch_one(&app.pool)
+    .await
+    .expect(
+        "Failed to fetch subscriber's info, maybe because he's not in the db or something else",
+    );
 
-    assert_eq!(query.name, "hamada");
-    assert_eq!(query.email, "hamada@yahoo.com");
+    assert_eq!(query.name, "test0000");
+    assert_eq!(query.email, "test@remote_resever_0000.com");
 }
 
+// just parsing form input if it is valid check no db values check
 #[tokio::test]
 async fn subscribe_returns_a_422_when_data_is_missing() {
     // arrange
-    let address = spawn_app().await;
-
+    let app = spawn_app().await;
     let client = Client::new();
 
     // act
@@ -124,7 +118,7 @@ async fn subscribe_returns_a_422_when_data_is_missing() {
     ];
     for (body, error_message) in test_cases {
         let response = client
-            .post(format!("http://{}/subscriptions", address))
+            .post(format!("http://{}/subscriptions", &app.address))
             .form(&body)
             .send()
             .await
@@ -139,7 +133,12 @@ async fn subscribe_returns_a_422_when_data_is_missing() {
     }
 }
 
-async fn spawn_app() -> String {
+pub struct TestApp {
+    pub address: String,
+    pub pool: PgPool,
+}
+
+async fn spawn_app() -> TestApp {
     let configuration = get_configuration().expect("failed to read configuration");
     let db_url = configuration.database.db_connection_string();
     let pool = PgPoolOptions::new()
@@ -148,11 +147,15 @@ async fn spawn_app() -> String {
         .await
         .unwrap();
 
-    let application = build_router(pool).unwrap();
+    let application = build_router(pool.clone()).unwrap();
     //                                                                   random port
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     // we put async move because axum::serve() is an async fn
     let _ = tokio::spawn(async move { axum::serve(listener, application).await.unwrap() });
-    format!("127.0.0.1:{}", port)
+
+    TestApp {
+        address: format!("127.0.0.1:{}", port),
+        pool,
+    }
 }
