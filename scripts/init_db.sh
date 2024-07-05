@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# it's better off to use docker compose in my opinion
 set -x
 set -eo pipefail
 
