@@ -1,5 +1,5 @@
 /target
 templates/output.css
 tailwind.config.js # optional
-.env
-configuration.yaml
+# .env
+# configuration.yaml
