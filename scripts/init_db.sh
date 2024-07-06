@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# it's better off to use docker compose in my opinion
 set -x
 set -eo pipefail
 
@@ -16,9 +15,8 @@ if ! [ -x "$(command -v sqlx)" ]; then
   exit 1
 fi
 
-# not the actual user and password btw
 # Check if a custom user has been set, otherwise default to 'postgres'
-DB_USER=${POSTGRES_USER:=postgres}
+DB_USER="${POSTGRES_USER:=postgres}"
 # Check if a custom password has been set, otherwise default to 'password'
 DB_PASSWORD="${POSTGRES_PASSWORD:=password}"
 # Check if a custom database name has been set, otherwise default to 'newsletter'
@@ -26,10 +24,7 @@ DB_NAME="${POSTGRES_DB:=newsletter}"
 # Check if a custom port has been set, otherwise default to '5432'
 DB_PORT="${POSTGRES_PORT:=5432}"
 # Check if a custom host has been set, otherwise default to 'localhost'
-DB_HOST="${POSTGRES_HOST:=172.24.64.1}"
-
-# Name for the Docker container
-CONTAINER_NAME="zero2prod-contact-form-container"
+DB_HOST="${POSTGRES_HOST:=localhost}"
 
 # Allow to skip Docker if a dockerized Postgres database is already running
 if [[ -z "${SKIP_DOCKER}" ]]
@@ -48,7 +43,7 @@ then
       -e POSTGRES_DB=${DB_NAME} \
       -p "${DB_PORT}":5432 \
       -d \
-      --name ${CONTAINER_NAME}\
+      --name "postgres_$(date '+%s')" \
       postgres -N 1000
       # ^ Increased maximum number of connections for testing purposes
 fi
@@ -62,10 +57,7 @@ done
 >&2 echo "Postgres is up and running on port ${DB_PORT} - running migrations now!"
 
 export DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
-# export DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}
-#sqlx database create
-#sqlx migrate add create_subscriptions_table
-
+sqlx database create
 sqlx migrate run
 
 >&2 echo "Postgres has been migrated, ready to go!"
