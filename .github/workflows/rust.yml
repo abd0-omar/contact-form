@@ -35,7 +35,7 @@ jobs:
       - name: Migrate database
         run: |
           sudo apt-get update && sudo apt-get install libpq-dev -y
-          SKIP_DOCKER=true ./scripts/init_db.sh
+          ./scripts/init_db.sh
 
       - name: Build
         run: cargo build --verbose
