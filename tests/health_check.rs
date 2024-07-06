@@ -2,10 +2,14 @@ use std::collections::HashMap;
 
 use configuration::{get_configuration, DatabaseSettings};
 use contact_form::*;
+use once_cell::sync::Lazy;
 use reqwest::{Client, StatusCode};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use startup::build_router;
 use uuid::Uuid;
+
+use contact_form::telemetry::{get_subscriber, init_subscriber};
+
 #[tokio::test]
 async fn health_check_works() {
     // arrange
@@ -85,14 +89,12 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 
     // no query_as! cuz my pc would be too slow for compile times
     // but may do it if it is needed in the CI.
-    let query: SubscriberInfo = sqlx::query_as(
-        "SELECT email, name FROM subscriptions",
-    )
-    .fetch_one(&app.pool)
-    .await
-    .expect(
-        "Failed to fetch subscriber's info, maybe because he's not in the db or something else",
-    );
+    let query: SubscriberInfo = sqlx::query_as("SELECT email, name FROM subscriptions")
+        .fetch_one(&app.pool)
+        .await
+        .expect(
+            "Failed to fetch subscriber's info, maybe because he's not in the db or something else",
+        );
 
     assert_eq!(query.name, "test0000");
     assert_eq!(query.email, "test@remote_resever_0000.com");
@@ -134,12 +136,28 @@ async fn subscribe_returns_a_422_when_data_is_missing() {
     }
 }
 
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let default_filter_level = "info".to_string();
+    let subscriber_name = "test".to_string();
+    if std::env::var("TEST_LOG").is_ok() {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
+        init_subscriber(subscriber);
+    } else {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::sink);
+        init_subscriber(subscriber);
+    };
+});
+
 pub struct TestApp {
     pub address: String,
     pub pool: PgPool,
 }
 
 async fn spawn_app() -> TestApp {
+    // The first time `initialize` is invoked the code in `TRACING` is executed.
+    // All other invocations will instead skip execution.
+    Lazy::force(&TRACING);
+
     let mut configuration = get_configuration().expect("failed to read configuration");
     configuration.database.database_name = Uuid::new_v4().to_string();
     // create table from the random db name you just generated

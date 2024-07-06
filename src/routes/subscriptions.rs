@@ -13,45 +13,63 @@ use axum::http::StatusCode;
 
 #[derive(Deserialize, Debug, Template, sqlx::FromRow)]
 #[template(path = "succession.html")]
-pub struct Input {
+pub struct FormData {
     name: String,
     email: String,
 }
 
-pub async fn accept_form(
+#[tracing::instrument(
+    name = "Adding a new subscriber",
+    skip(form, pool),
+    fields(
+        subscriber_email = %form.email,
+        subscriber_name = %form.name
+    )
+)]
+pub async fn subscribe(
     State(pool): State<PgPool>,
-    Form(input): Form<Input>,
+    Form(form): Form<FormData>,
 ) -> impl IntoResponse {
+    match insert_subscriber(pool, &form).await {
+        Ok(_) => FormData {
+            name: form.name,
+            email: form.email,
+        }
+        .into_response(),
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+    }
+
+    // let template = FormData {
+    //     name: form.name,
+    //     email: form.email,
+    // };
+    // template.into_response()
+}
+
+#[tracing::instrument(
+    name = "Saving new subscriber details in the database",
+    skip(form, pool)
+)]
+pub async fn insert_subscriber(pool: PgPool, form: &FormData) -> Result<(), sqlx::Error> {
     sleep(Duration::from_secs(1)).await;
     println!("100 ms have elapsed");
-    dbg!(&input);
 
-    match sqlx::query(
+    sqlx::query(
         "INSERT INTO subscriptions (id, name, email, subscribed_at) VALUES ($1, $2, $3, $4)",
     )
     .bind(Uuid::new_v4())
-    .bind(&input.name)
-    .bind(&input.email)
+    .bind(&form.name)
+    .bind(&form.email)
     .bind(Utc::now())
     .bind(3)
     .execute(&pool)
     .await
-    {
-        Ok(o) => eprintln!("new subscriber added! {:?}", o),
-        Err(e) => {
-            return (
-                eprintln!("failed to execute query: {}", e),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )
-                .into_response();
-        }
-    };
+    .map_err(|e| {
+        tracing::error!("Failed to execute query {:?}", e);
+        e
+    })?;
 
-    let template = Input {
-        name: input.name,
-        email: input.email,
-    };
-    template.into_response()
+    Ok(())
 }
 
 // // FromRequest example, aka custom extractor

@@ -1,4 +1,5 @@
 use config::{Config, ConfigError};
+use secrecy::{ExposeSecret, Secret};
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
@@ -11,7 +12,7 @@ pub struct DatabaseSettings {
     // U&P HPN
     // postgres://name:password@host:port/db_name
     pub username: String,
-    pub password: String,
+    pub password: Secret<String>,
     pub host: String,
     pub port: u16,
     pub database_name: String,
@@ -21,7 +22,11 @@ impl DatabaseSettings {
     pub fn connection_string_with_db(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",
-            self.username, self.password, self.host, self.port, self.database_name
+            self.username,
+            self.password.expose_secret(),
+            self.host,
+            self.port,
+            self.database_name
         )
     }
 
@@ -29,7 +34,10 @@ impl DatabaseSettings {
         // U&P HPN
         format!(
             "postgres://{}:{}@{}:{}",
-            self.username, self.password, self.host, self.port
+            self.username,
+            self.password.expose_secret(),
+            self.host,
+            self.port
         )
     }
 }
