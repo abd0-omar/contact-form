@@ -2,21 +2,40 @@ name: Rust
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
 env:
   CARGO_TERM_COLOR: always
+  SQLX_VERSION: 0.7.2
+  SQLX_FEATURES: "rustls,postgres"
 
 jobs:
-  build:
-
+  test:
+    name: Test
     runs-on: ubuntu-latest
-
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: sqlx-${{ env.SQLX_VERSION }}
+      - name: Install sqlx-cli
+        run: |
+          cargo install sqlx-cli --version=${{ env.SQLX_VERSION }} --features ${{ env.SQLX_FEATURES }} --no-default-features --locked
+      - name: Migrate database
+        run: SKIP_DOCKER=true ./scripts/init_db.sh
+      - name: Run tests
+        run: cargo test --verbose
