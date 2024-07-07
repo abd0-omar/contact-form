@@ -9,8 +9,6 @@ use serde::Deserialize;
 use chrono::Utc;
 use uuid::Uuid;
 
-use axum::http::StatusCode;
-
 #[derive(Deserialize, Debug, Template, sqlx::FromRow)]
 #[template(path = "succession.html")]
 pub struct FormData {
@@ -34,9 +32,13 @@ pub async fn subscribe(
         Ok(_) => FormData {
             name: form.name,
             email: form.email,
-        }
-        .into_response(),
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+        },
+        // Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+        Err(_) => FormData {
+            // could've added an extra field to check, but too lazy and it works
+            name: "the server blew up".to_string(),
+            email: form.email,
+        },
     }
 
     // let template = FormData {
