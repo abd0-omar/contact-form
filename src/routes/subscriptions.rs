@@ -56,14 +56,13 @@ pub async fn insert_subscriber(pool: PgPool, form: &FormData) -> Result<(), sqlx
     sleep(Duration::from_secs(1)).await;
     println!("100 ms have elapsed");
 
-    sqlx::query(
+    sqlx::query!(
         "INSERT INTO subscriptions (id, name, email, subscribed_at) VALUES ($1, $2, $3, $4)",
+        Uuid::new_v4(),
+        &form.name,
+        &form.email,
+        Utc::now(),
     )
-    .bind(Uuid::new_v4())
-    .bind(&form.name)
-    .bind(&form.email)
-    .bind(Utc::now())
-    .bind(3)
     .execute(&pool)
     .await
     .map_err(|e| {

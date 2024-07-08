@@ -11,17 +11,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_subscriber(subscriber);
 
     let configuration = get_configuration().expect("failed to read configuration");
-    let db_url = configuration.database.connection_string_with_db();
     dbg!("don't forget to run postgres");
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&db_url)
-        .await?;
+    // let pool = PgPoolOptions::new()
+    //     .max_connections(5)
+    //     .connect(&db_url)
+    //     .await?;
+
+    // no longer async, not sure exactly why
+    let pool = PgPoolOptions::new().connect_lazy_with(configuration.database.with_db());
 
     let application = build_router(pool)?;
-    let settings = get_configuration().expect("failed to read configuration file");
-    let listener =
-        tokio::net::TcpListener::bind(format!("127.0.0.1:{}", settings.application_port)).await?;
+    let listener = tokio::net::TcpListener::bind(format!(
+        "{}:{}",
+        configuration.application.host, configuration.application.port
+    ))
+    .await?;
     println!("listnening live on {}", listener.local_addr()?);
     axum::serve(listener, application).await?;
     Ok(())

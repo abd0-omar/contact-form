@@ -29,6 +29,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing-bunyan-formatter = "0.3.9"
 chrono = "0.4.38"
 secrecy = { version = "0.8", features = ["serde"] }
+serde-aux = "4.5.0"
 
 [dev-dependencies]
 reqwest = { version = "0.12.4"}

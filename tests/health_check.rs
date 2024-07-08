@@ -89,7 +89,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 
     // no query_as! cuz my pc would be too slow for compile times
     // but may do it if it is needed in the CI.
-    let query: SubscriberInfo = sqlx::query_as("SELECT email, name FROM subscriptions")
+    let query = sqlx::query_as!(SubscriberInfo, "SELECT email, name FROM subscriptions")
         .fetch_one(&app.pool)
         .await
         .expect(
@@ -172,6 +172,7 @@ async fn spawn_app() -> TestApp {
     let application = build_router(pool.clone()).unwrap();
     //                                                                   random port
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    // our random port
     let port = listener.local_addr().unwrap().port();
     // we put async move because axum::serve() is an async fn
     let _ = tokio::spawn(async move { axum::serve(listener, application).await.unwrap() });
@@ -182,23 +183,23 @@ async fn spawn_app() -> TestApp {
     }
 }
 
-async fn configure_database(database: &DatabaseSettings) -> PgPool {
+async fn configure_database(config: &DatabaseSettings) -> PgPool {
     // it's really a pool, it's just one connection, so connection would be a better name
     // but we'll leave it as pool
 
     // create database without a name, `PgConnection` just a connection
-    let mut pool = PgConnection::connect(&database.connection_string_without_db())
+    let mut pool = PgConnection::connect_with(&config.without_db())
         .await
         .expect("Failed to connect to postgres");
 
     // create database with our random database name
-    pool.execute(format!(r#"CREATE DATABASE "{}";"#, database.database_name).as_str())
+    pool.execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
         .await
         .expect("Failed to create database");
 
     // migrate our new random database
     // `PgPool`
-    let pool = PgPool::connect(&database.connection_string_with_db())
+    let pool = PgPool::connect_with(config.with_db())
         .await
         .expect("Failed to connect to postgres");
     sqlx::migrate!("./migrations")

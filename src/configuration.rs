@@ -1,10 +1,20 @@
 use config::{Config, ConfigError};
 use secrecy::{ExposeSecret, Secret};
+use serde_aux::field_attributes::deserialize_number_from_string;
+use sqlx::postgres::{PgConnectOptions, PgSslMode};
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
-    pub application_port: u16,
+    // add host alongside port
+    pub application: ApplicationSettings,
     pub database: DatabaseSettings,
+}
+
+#[derive(serde::Deserialize)]
+pub struct ApplicationSettings {
+    #[serde(deserialize_with = "deserialize_number_from_string")]
+    pub port: u16,
+    pub host: String,
 }
 
 #[derive(serde::Deserialize)]
@@ -14,39 +24,108 @@ pub struct DatabaseSettings {
     pub username: String,
     pub password: Secret<String>,
     pub host: String,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub database_name: String,
+    pub require_ssl: bool,
 }
 
 impl DatabaseSettings {
-    pub fn connection_string_with_db(&self) -> String {
-        format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.username,
-            self.password.expose_secret(),
-            self.host,
-            self.port,
-            self.database_name
-        )
+    pub fn without_db(&self) -> PgConnectOptions {
+        // U&P HPN
+        // format!(
+        //     "postgres://{}:{}@{}:{}",
+        //     self.username,
+        //     self.password.expose_secret(),
+        //     self.host,
+        //     self.port
+        // )
+        let ssl_mode = if self.require_ssl {
+            PgSslMode::Require
+        } else {
+            // try encrypted connection, fallback to unencrypted if it fails
+            // which what we will use in local development
+            PgSslMode::Prefer
+        };
+        PgConnectOptions::new()
+            .username(&self.username)
+            .password(&self.password.expose_secret())
+            .host(&self.host)
+            .port(self.port)
+            .ssl_mode(ssl_mode)
     }
 
-    pub fn connection_string_without_db(&self) -> String {
-        // U&P HPN
-        format!(
-            "postgres://{}:{}@{}:{}",
-            self.username,
-            self.password.expose_secret(),
-            self.host,
-            self.port
-        )
+    pub fn with_db(&self) -> PgConnectOptions {
+        // add on the (without_db() PgConnection) the database name
+        self.without_db().database(&self.database_name)
     }
 }
 
 pub fn get_configuration() -> Result<Settings, ConfigError> {
+    // configuration/base.yaml
+    // configuration/local.yaml
+    // configuration/production.yaml
+    let base_path = std::env::current_dir()
+        .expect("Failed to determine the current directory aka \"folder:)\" for windows users");
+
+    let configuration_directory = base_path.join("configuration");
+
+    // Detect the running enviroment
+    // Default to `local` if unspecified
+    let environment: Environment = std::env::var("APP_ENVIRONMENT")
+        .unwrap_or_else(|_| "local".into())
+        .try_into()
+        .expect("Failed to parse APP_ENVIRONMENT");
+
+    let environment_filename = format!("{}.yaml", environment.as_str());
+
     let settings: Settings = Config::builder()
-        .add_source(config::File::with_name("configuration.yaml"))
-        // .add_source(config::Environment::with_prefix("APP"))
+        // read the "default" configuration file
+        .add_source(config::File::from(
+            configuration_directory.join("base.yaml"),
+        ))
+        // also read the file specific environment
+        .add_source(config::File::from(
+            configuration_directory.join(environment_filename),
+        ))
+        // Add in settings from environment variables (with a prefix of APP and '__' as separator
+        // E.g.`APP_APPLICATION__PORT=5001 would set `Settings.application.port`
+        .add_source(
+            config::Environment::with_prefix("APP")
+                .prefix_separator("_")
+                .separator("__"),
+        )
         .build()?
         .try_deserialize()?;
+
     Ok(settings)
+}
+
+pub enum Environment {
+    Local,
+    Production,
+}
+
+impl Environment {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Environment::Local => "local",
+            Environment::Production => "production",
+        }
+    }
+}
+
+impl TryFrom<String> for Environment {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "local" => Ok(Self::Local),
+            "production" => Ok(Self::Production),
+            other => Err(format!(
+                "{}, is not supported enviroment. Use either `local` or `production`.",
+                other
+            )),
+        }
+    }
 }
