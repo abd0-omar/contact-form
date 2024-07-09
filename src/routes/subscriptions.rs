@@ -1,5 +1,4 @@
 use sqlx::PgPool;
-use tokio::time::{sleep, Duration};
 
 use askama::Template;
 use askama_axum::IntoResponse;
@@ -9,11 +8,30 @@ use serde::Deserialize;
 use chrono::Utc;
 use uuid::Uuid;
 
-#[derive(Deserialize, Debug, Template, sqlx::FromRow)]
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+
+#[derive(Deserialize, Debug, Template, sqlx::FromRow, Clone)]
 #[template(path = "succession.html")]
 pub struct FormData {
     name: String,
     email: String,
+    error: Option<FormError>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+enum FormError {
+    BadEmail,
+    ConflictOrQueryBlewUp,
+}
+
+impl TryFrom<FormData> for NewSubscriber {
+    type Error = String;
+
+    fn try_from(value: FormData) -> Result<Self, Self::Error> {
+        let name = SubscriberName::parse(value.name)?;
+        let email = SubscriberEmail::parse(value.email)?;
+        Ok(Self { email, name })
+    }
 }
 
 #[tracing::instrument(
@@ -28,48 +46,67 @@ pub async fn subscribe(
     State(pool): State<PgPool>,
     Form(form): Form<FormData>,
 ) -> impl IntoResponse {
-    match insert_subscriber(pool, &form).await {
-        Ok(_) => FormData {
-            name: form.name,
-            email: form.email,
-        },
-        // Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-        Err(_) => FormData {
-            // could've added an extra field to check, but too lazy and it works
-            name: "the server blew up".to_string(),
-            email: form.email,
-        },
-    }
+    let new_subscriber: NewSubscriber = match form.clone().try_into() {
+        Ok(form) => form,
+        Err(_) => {
+            return (
+                axum::http::StatusCode::UNPROCESSABLE_ENTITY,
+                FormData {
+                    name: form.name,
+                    email: form.email,
+                    error: Some(FormError::BadEmail),
+                },
+            )
+                .into_response();
+        }
+    };
 
-    // let template = FormData {
-    //     name: form.name,
-    //     email: form.email,
-    // };
-    // template.into_response()
+    // returning a templat
+    match insert_subscriber(&pool, &new_subscriber).await {
+        Ok(_) => FormData {
+            name: new_subscriber.name.into(),
+            email: new_subscriber.email.into(),
+            error: None,
+        }
+        .into_response(),
+        Err(_) => (
+            // email already in db or could be that query didn't make it
+            axum::http::StatusCode::CONFLICT,
+            FormData {
+                name: new_subscriber.name.into(),
+                email: new_subscriber.email.into(),
+                error: Some(FormError::ConflictOrQueryBlewUp),
+            },
+        )
+            .into_response(),
+    }
 }
 
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",
-    skip(form, pool)
+    skip(new_subscriber, pool)
 )]
-pub async fn insert_subscriber(pool: PgPool, form: &FormData) -> Result<(), sqlx::Error> {
-    sleep(Duration::from_secs(1)).await;
-    println!("100 ms have elapsed");
 
+pub async fn insert_subscriber(
+    pool: &PgPool,
+    new_subscriber: &NewSubscriber,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        "INSERT INTO subscriptions (id, name, email, subscribed_at) VALUES ($1, $2, $3, $4)",
+        r#"
+    INSERT INTO subscriptions (id, email, name, subscribed_at)
+    VALUES ($1, $2, $3, $4)
+            "#,
         Uuid::new_v4(),
-        &form.name,
-        &form.email,
-        Utc::now(),
+        new_subscriber.email.as_ref(),
+        new_subscriber.name.as_ref(),
+        Utc::now()
     )
-    .execute(&pool)
+    .execute(pool)
     .await
     .map_err(|e| {
-        tracing::error!("Failed to execute query {:?}", e);
+        tracing::error!("Failed to execute query: {:?}", e);
         e
     })?;
-
     Ok(())
 }
 
