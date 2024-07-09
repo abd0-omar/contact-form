@@ -7,6 +7,15 @@
     </div>
     <div class="card shrink-0 w-full max-w-xl shadow-2xl bg-base-100 ">
       <div>
+        <script>
+          // https://htmx.org/docs/#modifying_swapping_behavior_with_events
+          document.body.addEventListener('htmx:beforeSwap', function (evt) {
+            if (evt.detail.xhr.status === 422 || evt.detail.xhr.status === 409) {
+              evt.detail.shouldSwap = true;
+              evt.detail.isError = false;
+            }
+          });
+        </script>
         <form action="/" method="post" hx-post="/subscriptions" hx-indicator="#thesuccession" hx-target="#thesuccession"
           class="card-body">
           <div class="form-control">

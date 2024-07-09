@@ -1,11 +1,18 @@
-{% if name == "the server blew up" %}
+{# TODO: return the whole form instead with the wrong fields blank #}
+{% match error %}
+{% when Some with (FormError::BadEmail) %}
+<div class="flex-col">
+  <p class="text-center">The server blew up</p>
+  <p class="text-center">what kind of email "{{ email }}" is that?!!!</p>
+</div>
+{% when Some with (FormError::ConflictOrQueryBlewUp) %}
 <div class="flex-col">
   <p class="text-center">The server blew up</p>
   <p class="text-center">The email: "{{ email }}" is already subscribed</p>
 </div>
-{% else %}
+{% when None %}
 <p class="text-center">You {{ name }} have subscribed with {{ email }} email!</p>
-{% endif %}
+{% endmatch %}
 <div id="spinner" class="htmx-indicator">
   <span class="loading loading-spinner text-primary"></span>
 </div>
