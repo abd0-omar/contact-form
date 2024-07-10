@@ -204,14 +204,14 @@ async fn subscribe_returns_a_422_when_data_is_missing() {
         assert_eq!(
             response.status(),
             StatusCode::UNPROCESSABLE_ENTITY,
-            "API did not fail with 400 Bad Request when the payload was {}.",
+            "API did not fail with 422 Bad Request when the payload was {}.",
             error_message
         );
     }
 }
 
 #[tokio::test]
-async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
+async fn subscribe_returns_a_422_when_fields_are_present_but_invalid() {
     // Arrange
     let app = spawn_app().await;
     let client = reqwest::Client::new();
@@ -234,8 +234,8 @@ async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
         // Assert
         assert_eq!(
             response.status(),
-            StatusCode::BAD_REQUEST,
-            "The API did not return a 400 Bad Request when the payload was {}.",
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "The API did not return a 422 Bad Request when the payload was {}.",
             description
         );
     }
