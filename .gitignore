@@ -3,3 +3,4 @@ templates/output.css
 tailwind.config.js # optional
 # .env
 # configuration.yaml
+configuration/production.yaml
