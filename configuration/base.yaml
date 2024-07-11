@@ -10,3 +10,8 @@ database:
   database_name: "newsletter"
   # will get overridden by the env variable that is used when running
   require_ssl: "false"
+email_client:
+  base_url: "localhost"
+  sender_email: "testes@gmail.com"
+  authorization_token: "my-secret-token"
+  timeout_milliseconds: 10000

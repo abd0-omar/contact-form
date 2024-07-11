@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use configuration::{get_configuration, DatabaseSettings};
 use contact_form::*;
+use email_client::EmailClient;
 use once_cell::sync::Lazy;
 use reqwest::{Client, StatusCode};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
@@ -37,14 +38,19 @@ async fn spawn_app() -> TestApp {
     // create table from the random db name you just generated
     let pool = configure_database(&configuration.database).await;
 
-    // let pool = PgPoolOptions::new()
-    //     .max_connections(5)
-    //     .connect(&co)
-    //     .await
-    //     .unwrap();
+    let sender_email = configuration
+        .email_client
+        .sender()
+        .expect("Invalid sender email address.");
+    let timeout = configuration.email_client.timeout();
+    let email_client = EmailClient::new(
+        configuration.email_client.base_url,
+        sender_email,
+        configuration.email_client.authorization_token,
+        timeout,
+    );
 
-    let application = build_router(pool.clone()).unwrap();
-    //                                                                   random port
+    let application = build_router(pool.clone(), email_client).unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     // our random port
     let port = listener.local_addr().unwrap().port();

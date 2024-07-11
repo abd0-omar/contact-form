@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use crate::email_client::EmailClient;
 use crate::routes::{
     greet::greet, health_check::health_check, index::index, subscriptions::subscribe,
 };
@@ -9,7 +12,19 @@ use sqlx::PgPool;
 use tower_http::trace::TraceLayer;
 use uuid::Uuid;
 
-pub fn build_router(pool: PgPool) -> Result<Router, Box<dyn std::error::Error>> {
+#[derive(Clone)]
+pub struct AppState {
+    pub pool: PgPool,
+    pub email_client: Arc<EmailClient>,
+}
+
+pub fn build_router(
+    pool: PgPool,
+    email_client: EmailClient,
+) -> Result<Router, Box<dyn std::error::Error>> {
+    let email_client = Arc::new(email_client);
+    let app_state = AppState { pool, email_client };
+
     let app = Router::new()
         .route("/", get(index))
         .route("/subscriptions", post(subscribe))
@@ -37,6 +52,6 @@ pub fn build_router(pool: PgPool) -> Result<Router, Box<dyn std::error::Error>> 
                 std::env::current_dir()?.to_str().unwrap()
             )),
         )
-        .with_state(pool);
+        .with_state(app_state);
     Ok(app)
 }

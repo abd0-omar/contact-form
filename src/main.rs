@@ -1,5 +1,6 @@
 use contact_form::{
     configuration::get_configuration,
+    email_client::EmailClient,
     startup::build_router,
     telemetry::{get_subscriber, init_subscriber},
 };
@@ -20,7 +21,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // no longer async, not sure exactly why
     let pool = PgPoolOptions::new().connect_lazy_with(configuration.database.with_db());
 
-    let application = build_router(pool)?;
+    let sender_email = configuration
+        .email_client
+        .sender()
+        .expect("Invalid sender email address.");
+    let timeout = configuration.email_client.timeout();
+    let email_client = EmailClient::new(
+        configuration.email_client.base_url,
+        sender_email,
+        configuration.email_client.authorization_token,
+        timeout,
+    );
+
+    let application = build_router(pool, email_client)?;
     let listener = tokio::net::TcpListener::bind(format!(
         "{}:{}",
         configuration.application.host, configuration.application.port
