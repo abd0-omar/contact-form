@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use configuration::{get_configuration, DatabaseSettings};
 use contact_form::*;
 use once_cell::sync::Lazy;
@@ -22,6 +24,44 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 pub struct TestApp {
     pub address: String,
     pub pool: PgPool,
+}
+
+// TODO: check if spawn_app should be in in impl block of TestApp
+impl TestApp {
+    pub async fn post_subscription(&self, form: HashMap<&str, &str>) -> reqwest::Response {
+        reqwest::Client::new()
+            .post(format!("http://{}/subscriptios", self.address))
+            .form(&form)
+            .send()
+            .await
+            .expect("failed to fire a response from reqwest")
+
+        // same as below
+
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST#example
+        // A simple form using the default application/x-www-form-urlencoded content type:
+        // HTTP
+        // Copy to Clipboard
+        // POST /test HTTP/1.1
+        // Host: foo.example
+        // Content-Type: application/x-www-form-urlencoded
+        // Content-Length: 27
+        // field1=value1&field2=value2
+
+        // https://www.w3schools.com/tags/ref_urlencode.ASP
+        // "space" -> "%20"
+        // "@" -> "%40"
+
+        // let response = client
+        //     .post(format!("http://{}/", address))
+        //     .header("Content-Type", "application/x-www-form-urlencoded")
+        //     .body("name=hamada&email=hamada%40yahoo.com")
+        //     .send()
+        //     .await
+        //     .expect("failed to execute a request to our server from reqwest client");
+
+        // dbg!(&response);
+    }
 }
 
 pub async fn spawn_app() -> TestApp {

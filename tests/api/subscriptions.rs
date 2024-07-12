@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::helpers::spawn_app;
-use reqwest::{Client, StatusCode};
+use reqwest::StatusCode;
 
 // insert table_name into values(_,_);
 // select
@@ -15,55 +15,17 @@ struct SubscriberInfo {
 async fn subscribe_returns_a_200_for_valid_form_data() {
     // arrange
     let app = spawn_app().await;
-    let client = Client::new();
 
     // act
     let mut params = HashMap::new();
     params.insert("name", "hamada_test");
     params.insert("email", "hamada_test@yahoo.com");
-    let response = client
-        .post(format!("http://{}/subscriptions", &app.address))
-        .form(&params)
-        .send()
-        .await
-        .expect("failed to execute a request to our server from reqwest client");
 
-    // same as below
-
-    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST#example
-    // A simple form using the default application/x-www-form-urlencoded content type:
-    // HTTP
-    // Copy to Clipboard
-    // POST /test HTTP/1.1
-    // Host: foo.example
-    // Content-Type: application/x-www-form-urlencoded
-    // Content-Length: 27
-    // field1=value1&field2=value2
-
-    // https://www.w3schools.com/tags/ref_urlencode.ASP
-    // "space" -> "%20"
-    // "@" -> "%40"
-
-    // let response = client
-    //     .post(format!("http://{}/", address))
-    //     .header("Content-Type", "application/x-www-form-urlencoded")
-    //     .body("name=hamada&email=hamada%40yahoo.com")
-    //     .send()
-    //     .await
-    //     .expect("failed to execute a request to our server from reqwest client");
-
-    // dbg!(&response);
+    let response = app.post_subscription(params).await;
 
     //assert
     assert_eq!(response.status(), StatusCode::OK);
 
-    // letsaved= sqlx::query!("SELECTemail,nameFROMsubscriptions",)
-    // .fetch_one(&mut connection)
-    // .await
-    // .expect("Failedtofetchsaved subscription.");
-
-    // no query_as! cuz my pc would be too slow for compile times
-    // but may do it if it is needed in the CI.
     let query = sqlx::query_as!(SubscriberInfo, "SELECT email, name FROM subscriptions")
         .fetch_one(&app.pool)
         .await
@@ -80,27 +42,21 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 async fn subscribe_returns_a_422_when_data_is_missing() {
     // arrange
     let app = spawn_app().await;
-    let client = Client::new();
 
     // act
     let test_cases = vec![
         (
-            HashMap::from([("", "hamada@yahoo.com")]),
+            HashMap::from([("name", ""), ("email", "hamada@yahoo.com")]),
             String::from("missing name"),
         ),
         (
-            HashMap::from([("hamada", "")]),
+            HashMap::from([("name", "hamada"), ("email", "")]),
             String::from("missing email"),
         ),
         (HashMap::from([("", "")]), String::from("missing both")),
     ];
     for (body, error_message) in test_cases {
-        let response = client
-            .post(format!("http://{}/subscriptions", &app.address))
-            .form(&body)
-            .send()
-            .await
-            .expect("failed to execute a request to our server from reqwest client");
+        let response = app.post_subscription(body).await;
 
         assert_eq!(
             response.status(),
@@ -115,22 +71,27 @@ async fn subscribe_returns_a_422_when_data_is_missing() {
 async fn subscribe_returns_a_422_when_fields_are_present_but_invalid() {
     // Arrange
     let app = spawn_app().await;
-    let client = reqwest::Client::new();
     let test_cases = vec![
-        ("name=&email=ursula_le_guin%40gmail.com", "empty name"),
-        ("name=Ursula&email=", "empty email"),
-        ("name=Ursula&email=definitely-not-an-email", "invalid email"),
+        (
+            HashMap::from([("name", ""), ("email", "good@answer.com")]),
+            "empty name",
+        ),
+        (
+            HashMap::from([("name", "Steve Harvey"), ("email", "")]),
+            "empty email",
+        ),
+        (
+            HashMap::from([
+                ("name", "Steve Harvey"),
+                ("email", "definitely-not-an-email"),
+            ]),
+            "invalid email",
+        ),
     ];
 
     for (body, description) in test_cases {
         // Act
-        let response = client
-            .post(&format!("http://{}/subscriptions", &app.address))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(body)
-            .send()
-            .await
-            .expect("Failed to execute request.");
+        let response = app.post_subscription(body).await;
 
         // Assert
         assert_eq!(
