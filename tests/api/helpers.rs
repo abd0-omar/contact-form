@@ -30,7 +30,7 @@ pub struct TestApp {
 impl TestApp {
     pub async fn post_subscription(&self, form: HashMap<&str, &str>) -> reqwest::Response {
         reqwest::Client::new()
-            .post(format!("http://{}/subscriptios", self.address))
+            .post(format!("http://{}/subscriptions", self.address))
             .form(&form)
             .send()
             .await
