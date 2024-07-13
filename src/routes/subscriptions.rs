@@ -1,5 +1,3 @@
-use sqlx::PgPool;
-
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::{extract::State, Form};
@@ -49,8 +47,6 @@ pub async fn subscribe(
     State(app_state): State<AppState>,
     Form(form): Form<FormData>,
 ) -> impl IntoResponse {
-    let pool = app_state.pool;
-
     let new_subscriber: NewSubscriber = match form.clone().try_into() {
         Ok(form) => form,
         Err(_) => {
@@ -66,15 +62,12 @@ pub async fn subscribe(
         }
     };
 
-    // returning a templat
-    match insert_subscriber(&pool, &new_subscriber).await {
-        Ok(_) => FormData {
-            name: new_subscriber.name.into(),
-            email: new_subscriber.email.into(),
-            error: None,
-        }
-        .into_response(),
-        Err(_) => (
+    // returning a template
+    if insert_subscriber(&app_state, new_subscriber.clone())
+        .await
+        .is_err()
+    {
+        return (
             // email already in db or could be that query didn't make it
             axum::http::StatusCode::CONFLICT,
             FormData {
@@ -83,19 +76,61 @@ pub async fn subscribe(
                 error: Some(FormError::ConflictOrQueryBlewUp),
             },
         )
-            .into_response(),
+            .into_response();
     }
+
+    let email_client = app_state.email_client;
+    let confirmation_link = "https://there-is-no-such-domain.com/subscriptions/confirm";
+
+    if email_client
+        .clone()
+        .send_email_mailgun(
+            new_subscriber.clone().email,
+            "Wilkommen!",
+            &format!(
+                "Welcome toour newsletter!<br/>\
+                Click <a href=\"{}\">here</a> to confirm your subscription.",
+                confirmation_link
+            ),
+            &format!(
+                "Welcome to our newsletter!\nVisit {} to confirmyoursubscription.",
+                confirmation_link
+            ),
+        )
+        .await
+        .is_err()
+    {
+        return (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            FormData {
+                name: new_subscriber.name.into(),
+                email: new_subscriber.email.into(),
+                error: Some(FormError::ConflictOrQueryBlewUp),
+            },
+        )
+            .into_response();
+    }
+
+    // status code by default would be 200 OK
+    FormData {
+        name: new_subscriber.name.into(),
+        email: new_subscriber.email.into(),
+        error: None,
+    }
+    .into_response()
 }
 
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",
-    skip(new_subscriber, pool)
+    skip(new_subscriber, app_state)
 )]
 
 pub async fn insert_subscriber(
-    pool: &PgPool,
-    new_subscriber: &NewSubscriber,
+    app_state: &AppState,
+    new_subscriber: NewSubscriber,
 ) -> Result<(), sqlx::Error> {
+    let pool = &app_state.pool;
+
     sqlx::query!(
         r#"
     INSERT INTO subscriptions (id, email, name, subscribed_at, status)

@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
-use crate::helpers::spawn_app;
+use crate::helpers::{process_multipart, spawn_app};
 use reqwest::StatusCode;
+
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, ResponseTemplate};
 
 // insert table_name into values(_,_);
 // select
@@ -15,26 +18,106 @@ struct SubscriberInfo {
 async fn subscribe_returns_a_200_for_valid_form_data() {
     // arrange
     let app = spawn_app().await;
+    let mut body = HashMap::new();
+    body.insert("name", "hamada_test");
+    body.insert("email", "hamada_test@yahoo.com");
+
+    Mock::given(path("/messages"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&app.email_server)
+        .await;
 
     // act
-    let mut params = HashMap::new();
-    params.insert("name", "hamada_test");
-    params.insert("email", "hamada_test@yahoo.com");
-
-    let response = app.post_subscription(params).await;
+    let response = app.post_subscriptions(body).await;
 
     //assert
     assert_eq!(response.status(), StatusCode::OK);
 
-    let query = sqlx::query_as!(SubscriberInfo, "SELECT email, name FROM subscriptions")
+    let saved = sqlx::query_as!(SubscriberInfo, "SELECT email, name FROM subscriptions")
         .fetch_one(&app.pool)
         .await
         .expect(
             "Failed to fetch subscriber's info, maybe because he's not in the db or something else",
         );
 
-    assert_eq!(query.name, "hamada_test");
-    assert_eq!(query.email, "hamada_test@yahoo.com");
+    assert_eq!(saved.name, "hamada_test");
+    assert_eq!(saved.email, "hamada_test@yahoo.com");
+}
+
+#[tokio::test]
+async fn subscribe_sends_a_confirmation_email_for_valid_data() {
+    // Arrange
+    let app = spawn_app().await;
+    let body = HashMap::from([("name", "Shady Khalifa"), ("email", "shekohex@gmail.com")]);
+
+    Mock::given(path("/messages"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&app.email_server)
+        .await;
+
+    // Act
+    app.post_subscriptions(body).await;
+
+    // Assert
+    // Mock asserts on drop
+}
+
+#[tokio::test]
+async fn subscribe_sends_a_confirmation_email_with_a_link() {
+    // Arrange
+    let app = spawn_app().await;
+    let mut body = HashMap::new();
+    body.insert("name", "hamada_test");
+    body.insert("email", "hamada_test@yahoo.com");
+
+    Mock::given(path("/messages"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&app.email_server)
+        .await;
+
+    // Act
+    app.post_subscriptions(body.into()).await;
+
+    // Assert
+    let email_request = &app.email_server.received_requests().await.unwrap()[0];
+    let body = std::str::from_utf8(&email_request.body).unwrap();
+    dbg!(body);
+
+    // let boundary = if let Some(head) = email_request.headers.get("Content-Type") {
+    //     dbg!(&head);
+    //     head.to_str().unwrap()
+    //     //&head = "multipart/form-data; boundary=595e1f4aecec014a-e57b96d1e71c256c-4971e61e04ce9267-e68f8c85e1cde7e1"
+    // } else {
+    //     panic!("couldn't get boundary=");
+    // };
+
+    // let index = boundary.find("boundary=").unwrap();
+    // // 9 is the len of 'boundry='
+    // dbg!(&boundary[index + 9..]);
+
+    let form_data = process_multipart(body.to_string()).await;
+    dbg!(&form_data);
+
+    // Extract the link from one of the request fields.
+    let get_link = |s: &str| {
+        let links: Vec<_> = linkify::LinkFinder::new()
+            .links(s)
+            .filter(|l| *l.kind() == linkify::LinkKind::Url)
+            .collect();
+        dbg!(&links);
+        assert_eq!(links.len(), 1);
+        links[0].as_str().to_owned()
+    };
+    let html_link = get_link(&form_data["html"]);
+    let text_link = get_link(&form_data["text"]);
+    dbg!(&html_link);
+    dbg!(&text_link);
+
+    assert_eq!(html_link, text_link);
 }
 
 // just parsing form input if it is valid check no db values check
@@ -56,7 +139,7 @@ async fn subscribe_returns_a_422_when_data_is_missing() {
         (HashMap::new(), String::from("missing both")),
     ];
     for (body, error_message) in test_cases {
-        let response = app.post_subscription(body).await;
+        let response = app.post_subscriptions(body).await;
 
         assert_eq!(
             response.status(),
@@ -91,7 +174,7 @@ async fn subscribe_returns_a_422_when_fields_are_present_but_invalid() {
 
     for (body, description) in test_cases {
         // Act
-        let response = app.post_subscription(body).await;
+        let response = app.post_subscriptions(body).await;
 
         // Assert
         assert_eq!(

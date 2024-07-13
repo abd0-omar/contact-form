@@ -6,6 +6,7 @@ use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use startup::{get_connection_pool, Application};
 use uuid::Uuid;
+use wiremock::MockServer;
 
 use contact_form::telemetry::{get_subscriber, init_subscriber};
 
@@ -24,11 +25,12 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 pub struct TestApp {
     pub address: String,
     pub pool: PgPool,
+    pub email_server: MockServer,
 }
 
 // TODO: check if spawn_app should be in in impl block of TestApp
 impl TestApp {
-    pub async fn post_subscription(&self, form: HashMap<&str, &str>) -> reqwest::Response {
+    pub async fn post_subscriptions(&self, form: HashMap<&str, &str>) -> reqwest::Response {
         reqwest::Client::new()
             .post(format!("http://{}/subscriptions", self.address))
             .form(&form)
@@ -69,12 +71,16 @@ pub async fn spawn_app() -> TestApp {
     // All other invocations will instead skip execution.
     Lazy::force(&TRACING);
 
+    let email_server = MockServer::start().await;
+
     let configuration = {
         let mut c = get_configuration().expect("failed to read configuration");
         // Use a different database for each test case
         c.database.database_name = Uuid::new_v4().to_string();
         // random port
         c.application.port = 0;
+        //Use the mock server as email API
+        c.email_client.base_url = email_server.uri();
         c
     };
 
@@ -95,6 +101,7 @@ pub async fn spawn_app() -> TestApp {
     TestApp {
         address,
         pool: get_connection_pool(&configuration.database),
+        email_server,
     }
 }
 
@@ -123,4 +130,36 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
         .expect("Failed to migrate the database");
 
     pool
+}
+
+pub async fn process_multipart(mut body: String) -> HashMap<String, String> {
+    let mut form_data = HashMap::new();
+
+    let disposal = "Content-Disposition: form-data; name=";
+
+    dbg!(&body);
+
+    loop {
+        // let index = if let Some(idx) = body.find(disposal).unwrap() + disposal.len() + 1;
+        let index = if let Some(idx) = body.find(disposal) {
+            idx + disposal.len() + 1
+        } else {
+            break;
+        };
+        let index_end = body[index..].find("\r\n\r\n").unwrap() + index - 1;
+        dbg!(index);
+        dbg!(index_end);
+        let key = &body[index..index_end].to_string();
+        dbg!(&key);
+        let second_end = body[index_end + 10..].find("\r\n").unwrap() + index_end + 10;
+        dbg!(index_end);
+        dbg!(second_end);
+        let value = &body[index_end + 5..second_end].to_string();
+        dbg!(&value);
+        body = body[second_end..].to_string();
+        dbg!(&body);
+        form_data.insert(key.to_owned(), value.to_owned());
+    }
+
+    form_data
 }

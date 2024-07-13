@@ -4,6 +4,7 @@ use secrecy::{ExposeSecret, Secret};
 
 // I'm using "mailgun" not "postmark"
 
+#[derive(Clone)]
 pub struct EmailClient {
     http_client: Client,
     base_url: String,
@@ -56,21 +57,21 @@ impl EmailClient {
     }
 
     pub async fn send_email_mailgun(
-        self,
+        &self,
         recipient: SubscriberEmail,
-        subject: String,
-        html_content: String,
-        text_content: String,
+        subject: &str,
+        html_content: &str,
+        text_content: &str,
     ) -> Result<(), reqwest::Error> {
         let url = format!("{}/messages", self.base_url);
 
         // https://mailgun-docs.redoc.ly/docs/mailgun/api-reference/openapi-final/tag/Messages/#tag/Messages/operation/httpapi.(*apiHandler).handler-fm-18
         let form = reqwest::multipart::Form::new()
-            .text::<&str, String>("from", self.sender.into())
+            .text::<&str, String>("from", self.sender.as_ref().to_string())
             .text::<&str, String>("to", recipient.into())
-            .text("subject", subject)
-            .text("html", html_content)
-            .text("text", text_content);
+            .text("subject", subject.to_string())
+            .text("html", html_content.to_string())
+            .text("text", text_content.to_string());
 
         self.http_client
             .post(&url)
@@ -231,7 +232,7 @@ mod tests {
 
         // Act
         let _ = email_client
-            .send_email_mailgun(email(), subject(), content(), content())
+            .send_email_mailgun(email(), &subject(), &content(), &content())
             .await;
 
         // Assert
