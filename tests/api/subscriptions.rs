@@ -46,14 +46,14 @@ async fn subscribe_returns_a_422_when_data_is_missing() {
     // act
     let test_cases = vec![
         (
-            HashMap::from([("name", ""), ("email", "hamada@yahoo.com")]),
+            HashMap::from([("email", "hamada@yahoo.com")]),
             String::from("missing name"),
         ),
         (
-            HashMap::from([("name", "hamada"), ("email", "")]),
+            HashMap::from([("name", "hamada")]),
             String::from("missing email"),
         ),
-        (HashMap::from([("", "")]), String::from("missing both")),
+        (HashMap::new(), String::from("missing both")),
     ];
     for (body, error_message) in test_cases {
         let response = app.post_subscription(body).await;
