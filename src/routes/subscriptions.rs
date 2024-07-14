@@ -83,17 +83,16 @@ pub async fn subscribe(
     let confirmation_link = "https://there-is-no-such-domain.com/subscriptions/confirm";
 
     if email_client
-        .clone()
         .send_email_mailgun(
             new_subscriber.clone().email,
             "Wilkommen!",
             &format!(
-                "Welcome toour newsletter!<br/>\
+                "Welcome to our newsletter!<br/>\
                 Click <a href=\"{}\">here</a> to confirm your subscription.",
                 confirmation_link
             ),
             &format!(
-                "Welcome to our newsletter!\nVisit {} to confirmyoursubscription.",
+                "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
                 confirmation_link
             ),
         )
