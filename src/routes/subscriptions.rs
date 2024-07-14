@@ -82,7 +82,7 @@ pub async fn subscribe(
 
     let email_client = app_state.email_client;
 
-    if send_confirmation_email(&email_client, &new_subscriber)
+    if send_confirmation_email(&email_client, &new_subscriber, &app_state.base_url)
         .await
         .is_err()
     {
@@ -113,8 +113,13 @@ pub async fn subscribe(
 pub async fn send_confirmation_email(
     email_client: &EmailClient,
     new_subscriber: &NewSubscriber,
+    base_url: &str,
 ) -> Result<(), reqwest::Error> {
-    let confirmation_link = "https://there-is-no-such-domain.com/subscriptions/confirm";
+    // base_url could be 127.0.0.1 for testing or our Digital Ocean domain name
+    let confirmation_link = format!(
+        "{}/subscriptions/confirm?subscription_token=mytoken",
+        base_url
+    );
 
     let plain_body = format!(
         "Welcome to our newsletter!\nVisit {} to confirm your subscription.",

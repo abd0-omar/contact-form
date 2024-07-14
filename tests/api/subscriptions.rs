@@ -93,9 +93,7 @@ async fn subscribe_sends_a_confirmation_email_for_valid_data() {
 async fn subscribe_sends_a_confirmation_email_with_a_link() {
     // Arrange
     let app = spawn_app().await;
-    let mut body = HashMap::new();
-    body.insert("name", "hamada_test");
-    body.insert("email", "hamada_test@yahoo.com");
+    let body = HashMap::from([("name", "hamada_test"), ("email", "hamada_test@yahoo.com")]);
 
     Mock::given(path("/messages"))
         .and(method("POST"))
@@ -104,44 +102,13 @@ async fn subscribe_sends_a_confirmation_email_with_a_link() {
         .await;
 
     // Act
-    app.post_subscriptions(body.into()).await;
+    app.post_subscriptions(body).await;
 
     // Assert
     let email_request = &app.email_server.received_requests().await.unwrap()[0];
-    let body = std::str::from_utf8(&email_request.body).unwrap();
-    dbg!(body);
+    let confirmation_links = app.get_confirmation_links(&email_request);
 
-    // let boundary = if let Some(head) = email_request.headers.get("Content-Type") {
-    //     dbg!(&head);
-    //     head.to_str().unwrap()
-    //     //&head = "multipart/form-data; boundary=595e1f4aecec014a-e57b96d1e71c256c-4971e61e04ce9267-e68f8c85e1cde7e1"
-    // } else {
-    //     panic!("couldn't get boundary=");
-    // };
-
-    // let index = boundary.find("boundary=").unwrap();
-    // // 9 is the len of 'boundry='
-    // dbg!(&boundary[index + 9..]);
-
-    let form_data = process_multipart(body.to_string()).await;
-    dbg!(&form_data);
-
-    // Extract the link from one of the request fields.
-    let get_link = |s: &str| {
-        let links: Vec<_> = linkify::LinkFinder::new()
-            .links(s)
-            .filter(|l| *l.kind() == linkify::LinkKind::Url)
-            .collect();
-        dbg!(&links);
-        assert_eq!(links.len(), 1);
-        links[0].as_str().to_owned()
-    };
-    let html_link = get_link(&form_data["html"]);
-    let text_link = get_link(&form_data["text"]);
-    dbg!(&html_link);
-    dbg!(&text_link);
-
-    assert_eq!(html_link, text_link);
+    assert_eq!(confirmation_links.html, confirmation_links.plain_text);
 }
 
 // just parsing form input if it is valid check no db values check

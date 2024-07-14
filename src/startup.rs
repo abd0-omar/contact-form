@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::email_client::EmailClient;
+use crate::routes::subscriptions_confirm::confirm;
 use crate::routes::{
     greet::greet, health_check::health_check, index::index, subscriptions::subscribe,
 };
@@ -42,7 +43,12 @@ impl Application {
         );
         let listener = std::net::TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
-        let server = run(listener, pool, email_client)?;
+        let server = run(
+            listener,
+            pool,
+            email_client,
+            configuration.application.base_url,
+        )?;
 
         Ok(Self { port, server })
     }
@@ -60,9 +66,14 @@ pub fn run(
     listener: std::net::TcpListener,
     pool: PgPool,
     email_client: EmailClient,
+    base_url: String,
 ) -> Result<Serve<Router, Router>, std::io::Error> {
     let email_client = Arc::new(email_client);
-    let app_state = AppState { pool, email_client };
+    let app_state = AppState {
+        pool,
+        email_client,
+        base_url,
+    };
 
     let app = Router::new()
         .route("/", get(index))
@@ -70,6 +81,7 @@ pub fn run(
         .route("/health_check", get(health_check))
         .route("/path", get(greet))
         .route("/path/:name", get(greet))
+        .route("/subscriptions/confirm", get(confirm))
         .layer(TraceLayer::new_for_http().make_span_with(
             |request: &axum::http::Request<axum::body::Body>| {
                 let request_id = Uuid::new_v4();
@@ -104,6 +116,7 @@ pub fn run(
 pub struct AppState {
     pub pool: PgPool,
     pub email_client: Arc<EmailClient>,
+    pub base_url: String,
 }
 
 // we made this function so that build_router_and_listener could work on tests/helpers/spawn_app() fn with no problems

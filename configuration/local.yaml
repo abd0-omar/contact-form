@@ -1,4 +1,6 @@
 application:
   host: "localhost"
+  # used in testing and the other base_url in prod file for prod
+  base_url: "http://127.0.0.1"
 database:
   require_ssl: false
