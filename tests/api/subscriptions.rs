@@ -12,6 +12,7 @@ use wiremock::{Mock, ResponseTemplate};
 struct SubscriberInfo {
     name: String,
     email: String,
+    status: String,
 }
 
 #[tokio::test]
@@ -33,16 +34,39 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 
     //assert
     assert_eq!(response.status(), StatusCode::OK);
+}
 
-    let saved = sqlx::query_as!(SubscriberInfo, "SELECT email, name FROM subscriptions")
-        .fetch_one(&app.pool)
-        .await
-        .expect(
-            "Failed to fetch subscriber's info, maybe because he's not in the db or something else",
-        );
+#[tokio::test]
+async fn subscribe_persists_the_new_subscriber() {
+    // arrange
+    let app = spawn_app().await;
+    let mut body = HashMap::new();
+    body.insert("name", "hamada_test");
+    body.insert("email", "hamada_test@yahoo.com");
+
+    Mock::given(path("/messages"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&app.email_server)
+        .await;
+
+    // act
+    app.post_subscriptions(body).await;
+
+    //assert
+    let saved = sqlx::query_as!(
+        SubscriberInfo,
+        "SELECT email, name, status FROM subscriptions"
+    )
+    .fetch_one(&app.pool)
+    .await
+    .expect(
+        "Failed to fetch subscriber's info, maybe because he's not in the db or something else",
+    );
 
     assert_eq!(saved.name, "hamada_test");
     assert_eq!(saved.email, "hamada_test@yahoo.com");
+    assert_eq!(saved.status, "pending_confirmation");
 }
 
 #[tokio::test]
