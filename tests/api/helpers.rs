@@ -37,7 +37,7 @@ pub struct ConfirmationLinks {
 impl TestApp {
     pub async fn post_subscriptions(&self, form: HashMap<&str, &str>) -> reqwest::Response {
         reqwest::Client::new()
-            .post(format!("http://{}/subscriptions", self.address))
+            .post(format!("{}/subscriptions", self.address))
             .form(&form)
             .send()
             .await
@@ -139,7 +139,7 @@ pub async fn spawn_app() -> TestApp {
     let _ = tokio::spawn(application.run_until_stopped());
 
     TestApp {
-        address: format!("127.0.0.1:{}", application_port),
+        address: format!("http://localhost:{}", application_port),
         pool: get_connection_pool(&configuration.database),
         email_server,
         port: application_port,

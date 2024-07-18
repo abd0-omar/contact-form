@@ -9,7 +9,7 @@ async fn health_check_works() {
 
     // Act
     let response = client
-        .get(format!("http://{}/health_check", &app.address))
+        .get(format!("{}/health_check", &app.address))
         .send()
         .await
         .expect("failed to execute a request to our server from reqwest client");
