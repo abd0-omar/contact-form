@@ -36,7 +36,7 @@ impl EmailClient {
         text_content: &str,
     ) -> Result<(), reqwest::Error> {
         let url = format!("{}/email", self.base_url);
-        let request_body = SendEmailRequest {
+        let request_body = SendEmailRequestPostmark {
             from: self.sender.as_ref(),
             to: recipient.as_ref(),
             subject,
@@ -88,7 +88,7 @@ impl EmailClient {
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "PascalCase")]
-struct SendEmailRequest<'a> {
+struct SendEmailRequestPostmark<'a> {
     from: &'a str,
     to: &'a str,
     subject: &'a str,
@@ -266,7 +266,6 @@ mod tests {
         let email_client = email_client(mock_server.uri());
 
         Mock::given(any())
-            // Not a 200 anymore!
             .respond_with(ResponseTemplate::new(500))
             .expect(1)
             .mount(&mock_server)

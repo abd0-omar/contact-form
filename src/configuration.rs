@@ -88,7 +88,7 @@ pub fn get_configuration() -> Result<Settings, ConfigError> {
     // configuration/local.yaml
     // configuration/production.yaml
     let base_path = std::env::current_dir()
-        .expect("Failed to determine the current directory aka \"folder:)\" for windows users");
+        .expect("Failed to determine the current directory aka \"folder\" for windows users");
 
     let configuration_directory = base_path.join("configuration");
 
@@ -140,8 +140,8 @@ impl Environment {
 impl TryFrom<String> for Environment {
     type Error = String;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.to_lowercase().as_str() {
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        match s.to_lowercase().as_str() {
             "local" => Ok(Self::Local),
             "production" => Ok(Self::Production),
             other => Err(format!(

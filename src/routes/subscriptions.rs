@@ -1,9 +1,13 @@
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::{extract::State, Form};
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::Deserialize;
 
+use axum::http::StatusCode;
+
 use chrono::Utc;
+use sqlx::{Executor, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::{
@@ -63,28 +67,50 @@ pub async fn subscribe(
         }
     };
 
+    let mut transaction = match app_state.pool.begin().await {
+        Ok(transaction) => transaction,
+        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+    };
+
     // returning a template
-    if insert_subscriber(&app_state, new_subscriber.clone())
+    let subscriber_id = match insert_subscriber(&mut transaction, new_subscriber.clone()).await {
+        Ok(subscriber_id) => subscriber_id,
+        Err(_) => {
+            return (
+                // email already in db or could be that query didn't make it
+                axum::http::StatusCode::CONFLICT,
+                FormData {
+                    name: new_subscriber.name.into(),
+                    email: new_subscriber.email.into(),
+                    error: Some(FormError::ConflictOrQueryBlewUp),
+                },
+            )
+                .into_response();
+        }
+    };
+
+    let subscription_token = generate_subscription_token();
+    if store_subscription_token(&mut transaction, subscriber_id, &subscription_token)
         .await
         .is_err()
     {
-        return (
-            // email already in db or could be that query didn't make it
-            axum::http::StatusCode::CONFLICT,
-            FormData {
-                name: new_subscriber.name.into(),
-                email: new_subscriber.email.into(),
-                error: Some(FormError::ConflictOrQueryBlewUp),
-            },
-        )
-            .into_response();
+        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+    }
+
+    if transaction.commit().await.is_err() {
+        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
     }
 
     let email_client = app_state.email_client;
 
-    if send_confirmation_email(&email_client, &new_subscriber, &app_state.base_url)
-        .await
-        .is_err()
+    if send_confirmation_email(
+        &email_client,
+        &new_subscriber,
+        &app_state.base_url,
+        &subscription_token,
+    )
+    .await
+    .is_err()
     {
         return (
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
@@ -108,31 +134,32 @@ pub async fn subscribe(
 
 #[tracing::instrument(
     name = "Send a confirmation email to a new subscriber",
-    skip(email_client, new_subscriber)
+    skip(email_client, new_subscriber, base_url, subscription_token)
 )]
 pub async fn send_confirmation_email(
     email_client: &EmailClient,
     new_subscriber: &NewSubscriber,
     base_url: &str,
+    subscription_token: &str,
 ) -> Result<(), reqwest::Error> {
     // base_url could be 127.0.0.1 for testing or our Digital Ocean domain name
     let confirmation_link = format!(
-        "{}/subscriptions/confirm?subscription_token=mytoken",
-        base_url
+        "{}/subscriptions/confirm?subscription_token={}",
+        base_url, subscription_token
     );
 
     let plain_body = format!(
-        "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
+        "Wilkommen zu wir Newzletter!\nVisit {} to confirm your subscription.",
         confirmation_link
     );
     let html_body = format!(
-        "Welcome to our newsletter!<br />Click <a href=\"{}\">here</a> to confirm your subscription.",
+        "Wilkommen zu wir Newzletter!<br />Click <a href=\"{}\">here</a> to confirm your subscription.",
         confirmation_link
     );
     email_client
         .send_email_mailgun(
             new_subscriber.clone().email,
-            "Welcome!",
+            "Wilkommen!",
             &html_body,
             &plain_body,
         )
@@ -141,113 +168,58 @@ pub async fn send_confirmation_email(
 
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",
-    skip(new_subscriber, app_state)
+    skip(new_subscriber, transaction)
 )]
-
 pub async fn insert_subscriber(
-    app_state: &AppState,
+    transaction: &mut Transaction<'_, Postgres>,
     new_subscriber: NewSubscriber,
-) -> Result<(), sqlx::Error> {
-    let pool = &app_state.pool;
-
-    sqlx::query!(
+) -> Result<Uuid, sqlx::Error> {
+    let subscriber_id = Uuid::new_v4();
+    let query = sqlx::query!(
         r#"
     INSERT INTO subscriptions (id, email, name, subscribed_at, status)
     VALUES ($1, $2, $3, $4, 'pending_confirmation')
             "#,
-        Uuid::new_v4(),
+        subscriber_id,
         new_subscriber.email.as_ref(),
         new_subscriber.name.as_ref(),
         Utc::now()
-    )
-    .execute(pool)
-    .await
-    .map_err(|e| {
+    );
+    transaction.execute(query).await.map_err(|e| {
+        tracing::error!("Failed to execute query: {:?}", e);
+        e
+    })?;
+    Ok(subscriber_id)
+}
+
+fn generate_subscription_token() -> String {
+    let mut rng = thread_rng();
+    std::iter::repeat_with(|| rng.sample(Alphanumeric))
+        .map(char::from)
+        .take(25)
+        .collect()
+}
+
+#[tracing::instrument(
+    name = "Store subscription token in the database",
+    skip(subscription_token, transaction)
+)]
+async fn store_subscription_token(
+    transaction: &mut Transaction<'_, Postgres>,
+    subscriber_id: Uuid,
+    subscription_token: &str,
+) -> Result<(), sqlx::Error> {
+    let query = sqlx::query!(
+        r#"
+    INSERT INTO subscription_tokens (subscription_token , subscriber_id)
+    VALUES ($1, $2)
+        "#,
+        subscription_token,
+        subscriber_id
+    );
+    transaction.execute(query).await.map_err(|e| {
         tracing::error!("Failed to execute query: {:?}", e);
         e
     })?;
     Ok(())
 }
-
-// // FromRequest example, aka custom extractor
-// use axum::extract::Request;
-// use axum::RequestExt;
-// use axum::response::Response;
-// use axum::{async_trait, extract::FromRequest, Form};
-// use axum::http::{header::CONTENT_TYPE, StatusCode};
-// https://github.com/tokio-rs/axum/blob/main/examples/parse-body-based-on-content-type/src/main.rs
-// #[derive(Debug)]
-// pub struct CustomForm<T>(T);
-
-// #[async_trait]
-// impl<S, T> FromRequest<S> for CustomForm<T>
-// where
-//     S: Send + Sync,
-//     // Json<T>: FromRequest<()>,
-//     Form<T>: FromRequest<()>,
-//     T: 'static,
-// {
-//     type Rejection = Response;
-
-//     async fn from_request(req: Request, _state: &S) -> Result<Self, Self::Rejection> {
-//         let content_type_header = req.headers().get(CONTENT_TYPE);
-//         let content_type = content_type_header.and_then(|value| value.to_str().ok());
-
-//         if let Some(content_type) = content_type {
-//             // if content_type.starts_with("application/json") {
-//             //     let Json(payload) = req.extract().await.map_err(IntoResponse::into_response)?;
-//             //     return Ok(Self(payload));
-//             // }
-
-//             if content_type.starts_with("application/x-www-form-urlencoded") {
-//                 let Form(payload) = req.extract().await.map_err(IntoResponse::into_response)?;
-//                 return Ok(Self(payload));
-//             }
-//         }
-
-//         Err(StatusCode::UNSUPPORTED_MEDIA_TYPE.into_response())
-//     }
-// }
-// CustomExtractorError
-// https://github.com/tokio-rs/axum/blob/main/examples/customize-extractor-error/src/custom_extractor.rs
-
-//
-// // we can also write a custom extractor that grabs a connection from the pool
-// // which setup is appropriate depends on your application
-// struct DatabaseConnection(sqlx::pool::PoolConnection<sqlx::Postgres>);
-
-// #[async_trait]
-// impl<S> FromRequestParts<S> for DatabaseConnection
-// where
-//     PgPool: FromRef<S>,
-//     S: Send + Sync,
-// {
-//     type Rejection = (StatusCode, String);
-
-//     async fn from_request_parts(_parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-//         let pool = PgPool::from_ref(state);
-
-//         let conn = pool.acquire().await.map_err(internal_error)?;
-
-//         Ok(Self(conn))
-//     }
-// }
-
-// async fn using_connection_extractor(
-//     DatabaseConnection(mut conn): DatabaseConnection,
-// ) -> Result<String, (StatusCode, String)> {
-//     sqlx::query_scalar("select 'hello world from pg'")
-//         .fetch_one(&mut *conn)
-//         .await
-//         .map_err(internal_error)
-// }
-
-// /// Utility function for mapping any error into a `500 Internal Server Error`
-// /// response.
-// fn internal_error<E>(err: E) -> (StatusCode, String)
-// where
-//     E: std::error::Error,
-// {
-//     (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
-// }
-// https://github.com/tokio-rs/axum/blob/main/examples/sqlx-postgres/src/main.rs

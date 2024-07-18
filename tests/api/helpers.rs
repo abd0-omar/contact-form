@@ -29,7 +29,11 @@ pub struct TestApp {
     pub port: u16,
 }
 
-// TODO: check if spawn_app should be in in impl block of TestApp
+pub struct ConfirmationLinks {
+    pub html: reqwest::Url,
+    pub plain_text: reqwest::Url,
+}
+
 impl TestApp {
     pub async fn post_subscriptions(&self, form: HashMap<&str, &str>) -> reqwest::Response {
         reqwest::Client::new()
@@ -88,9 +92,11 @@ impl TestApp {
             confirmation_link
         };
 
+        //postmark
         // let html = get_link(body["HtmlBody"].as_str().unwrap());
         // let plain_text = get_link(body["TextBody"].as_str().unwrap());
 
+        // mailgun
         let html = get_link(body["html"].as_str());
         let plain_text = get_link(body["text"].as_str());
 
@@ -167,7 +173,7 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
     pool
 }
 
-pub fn process_multipart(mut body: String) -> HashMap<String, String> {
+fn process_multipart(mut body: String) -> HashMap<String, String> {
     let mut form_data = HashMap::new();
 
     let disposal = "Content-Disposition: form-data; name=";
@@ -197,9 +203,4 @@ pub fn process_multipart(mut body: String) -> HashMap<String, String> {
     }
 
     form_data
-}
-
-pub struct ConfirmationLinks {
-    pub html: reqwest::Url,
-    pub plain_text: reqwest::Url,
 }

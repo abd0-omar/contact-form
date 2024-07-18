@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 
-use crate::helpers::{process_multipart, spawn_app};
+use crate::helpers::spawn_app;
 use reqwest::StatusCode;
 
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, ResponseTemplate};
 
-// insert table_name into values(_,_);
-// select
+// insert table_name(_,_) into values(_,_);
 #[derive(Debug, sqlx::FromRow)]
 struct SubscriberInfo {
     name: String,
@@ -155,10 +154,7 @@ async fn subscribe_returns_a_422_when_fields_are_present_but_invalid() {
             "empty email",
         ),
         (
-            HashMap::from([
-                ("name", "Steve Harvey"),
-                ("email", "definitely-not-an-email"),
-            ]),
+            HashMap::from([("name", "Steve Harvey"), ("email", "show-me-invalid-email")]),
             "invalid email",
         ),
     ];

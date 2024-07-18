@@ -2,10 +2,9 @@ use std::sync::Arc;
 
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::email_client::EmailClient;
+use crate::routes::greet::greet;
 use crate::routes::subscriptions_confirm::confirm;
-use crate::routes::{
-    greet::greet, health_check::health_check, index::index, subscriptions::subscribe,
-};
+use crate::routes::{health_check::health_check, index::index, subscriptions::subscribe};
 use axum::serve::Serve;
 use axum::{
     routing::{get, post},
@@ -22,7 +21,7 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(configuration: Settings) -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn build(configuration: Settings) -> Result<Self, std::io::Error> {
         let pool = get_connection_pool(&configuration.database);
 
         let sender_email = configuration
@@ -69,6 +68,7 @@ pub fn run(
     base_url: String,
 ) -> Result<Serve<Router, Router>, std::io::Error> {
     let email_client = Arc::new(email_client);
+    let base_url = Arc::new(base_url);
     let app_state = AppState {
         pool,
         email_client,
@@ -116,7 +116,7 @@ pub fn run(
 pub struct AppState {
     pub pool: PgPool,
     pub email_client: Arc<EmailClient>,
-    pub base_url: String,
+    pub base_url: Arc<String>,
 }
 
 // we made this function so that build_router_and_listener could work on tests/helpers/spawn_app() fn with no problems
