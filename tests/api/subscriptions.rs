@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::helpers::spawn_app;
+use crate::helpers::{cleanup_test_db, spawn_app};
 use reqwest::StatusCode;
 
 use wiremock::matchers::{method, path};
@@ -33,6 +33,10 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 
     //assert
     assert_eq!(response.status(), StatusCode::OK);
+
+    cleanup_test_db(&app.db_name)
+        .await
+        .expect(&format!("Failed to delete test database {}", app.db_name));
 }
 
 #[tokio::test]
@@ -66,6 +70,10 @@ async fn subscribe_persists_the_new_subscriber() {
     assert_eq!(saved.name, "hamada_test");
     assert_eq!(saved.email, "hamada_test@yahoo.com");
     assert_eq!(saved.status, "pending_confirmation");
+
+    cleanup_test_db(&app.db_name)
+        .await
+        .expect(&format!("Failed to delete test database {}", app.db_name));
 }
 
 #[tokio::test]
@@ -86,6 +94,9 @@ async fn subscribe_sends_a_confirmation_email_for_valid_data() {
 
     // Assert
     // Mock asserts on drop
+    cleanup_test_db(&app.db_name)
+        .await
+        .expect(&format!("Failed to delete test database {}", app.db_name));
 }
 
 #[tokio::test]
@@ -108,6 +119,10 @@ async fn subscribe_sends_a_confirmation_email_with_a_link() {
     let confirmation_links = app.get_confirmation_links(&email_request);
 
     assert_eq!(confirmation_links.html, confirmation_links.plain_text);
+
+    cleanup_test_db(&app.db_name)
+        .await
+        .expect(&format!("Failed to delete test database {}", app.db_name));
 }
 
 // just parsing form input if it is valid check no db values check
@@ -128,6 +143,7 @@ async fn subscribe_returns_a_422_when_data_is_missing() {
         ),
         (HashMap::new(), String::from("missing both")),
     ];
+
     for (body, error_message) in test_cases {
         let response = app.post_subscriptions(body).await;
 
@@ -138,6 +154,10 @@ async fn subscribe_returns_a_422_when_data_is_missing() {
             error_message
         );
     }
+
+    cleanup_test_db(&app.db_name)
+        .await
+        .expect(&format!("Failed to delete test database {}", app.db_name));
 }
 
 #[tokio::test]
@@ -171,4 +191,8 @@ async fn subscribe_returns_a_422_when_fields_are_present_but_invalid() {
             description
         );
     }
+
+    cleanup_test_db(&app.db_name)
+        .await
+        .expect(&format!("Failed to delete test database {}", app.db_name));
 }

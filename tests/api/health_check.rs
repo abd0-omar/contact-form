@@ -1,6 +1,8 @@
 use crate::helpers::spawn_app;
 use reqwest::Client;
 
+use crate::helpers::cleanup_test_db;
+
 #[tokio::test]
 async fn health_check_works() {
     // Arrange
@@ -17,4 +19,8 @@ async fn health_check_works() {
     // assert_eq!(result, expected)
     assert!(response.status().is_success());
     assert_eq!(response.content_length(), Some(0));
+
+    cleanup_test_db(&app.db_name)
+        .await
+        .expect(&format!("Failed to delete test database {}", app.db_name));
 }

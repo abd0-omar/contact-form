@@ -3,7 +3,7 @@ use axum::{
     extract::{Query, State},
     response::IntoResponse,
 };
-use sqlx::PgPool;
+use sqlx::SqlitePool;
 use uuid::Uuid;
 
 use crate::startup::AppState;
@@ -49,7 +49,7 @@ pub async fn confirm(
     skip(sbuscription_token, pool)
 )]
 pub async fn get_subscriber_id_from_token(
-    pool: &PgPool,
+    pool: &SqlitePool,
     sbuscription_token: &str,
 ) -> Result<Option<Uuid>, sqlx::Error> {
     let result = sqlx::query!(
@@ -63,14 +63,15 @@ pub async fn get_subscriber_id_from_token(
         e
     })?;
 
-    Ok(result.map(|r| r.subscriber_id))
+    Ok(result.map(|r| Uuid::parse_str(&r.subscriber_id).unwrap()))
 }
 
 #[tracing::instrument(name = "Mark subscriber as confirmed", skip(pool, subscriber_id))]
-pub async fn confirm_subscriber(pool: &PgPool, subscriber_id: Uuid) -> Result<(), sqlx::Error> {
+pub async fn confirm_subscriber(pool: &SqlitePool, subscriber_id: Uuid) -> Result<(), sqlx::Error> {
+    let subscriber_id_string = subscriber_id.to_string();
     sqlx::query!(
         r#"UPDATE subscriptions SET status = 'confirmed' WHERE id = $1"#,
-        subscriber_id
+        subscriber_id_string
     )
     .execute(pool)
     .await

@@ -4,3 +4,4 @@ tailwind.config.js # optional
 # .env
 # configuration.yaml
 configuration/production.yaml
+newsletter.db

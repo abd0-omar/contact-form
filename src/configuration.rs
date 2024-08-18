@@ -1,7 +1,9 @@
+use std::str::FromStr;
+
 use config::{Config, ConfigError};
-use secrecy::{ExposeSecret, Secret};
+use secrecy::Secret;
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::postgres::{PgConnectOptions, PgSslMode};
+use sqlx::sqlite::SqliteConnectOptions;
 
 use crate::domain::SubscriberEmail;
 
@@ -23,45 +25,16 @@ pub struct ApplicationSettings {
 
 #[derive(serde::Deserialize, Clone)]
 pub struct DatabaseSettings {
-    // U&P HPN
-    // postgres://name:password@host:port/db_name
-    pub username: String,
-    pub password: Secret<String>,
-    pub host: String,
-    #[serde(deserialize_with = "deserialize_number_from_string")]
-    pub port: u16,
     pub database_name: String,
-    pub require_ssl: bool,
 }
 
 impl DatabaseSettings {
-    pub fn without_db(&self) -> PgConnectOptions {
-        // U&P HPN
-        // format!(
-        //     "postgres://{}:{}@{}:{}",
-        //     self.username,
-        //     self.password.expose_secret(),
-        //     self.host,
-        //     self.port
-        // )
-        let ssl_mode = if self.require_ssl {
-            PgSslMode::Require
-        } else {
-            // try encrypted connection, fallback to unencrypted if it fails
-            // which what we will use in local development
-            PgSslMode::Prefer
-        };
-        PgConnectOptions::new()
-            .username(&self.username)
-            .password(&self.password.expose_secret())
-            .host(&self.host)
-            .port(self.port)
-            .ssl_mode(ssl_mode)
-    }
+    pub fn connect_options_with_db_file_or_create_if_missing(&self) -> SqliteConnectOptions {
+        let db_path = format!("sqlite://{}.db", self.database_name);
 
-    pub fn with_db(&self) -> PgConnectOptions {
-        // add on the (without_db() PgConnection) the database name
-        self.without_db().database(&self.database_name)
+        SqliteConnectOptions::from_str(&db_path)
+            .expect("Failed to connect to sqlite")
+            .create_if_missing(true)
     }
 }
 

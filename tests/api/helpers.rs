@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fs::remove_file};
 
 use configuration::{get_configuration, DatabaseSettings};
 use contact_form::*;
 use once_cell::sync::Lazy;
-use sqlx::{Connection, Executor, PgConnection, PgPool};
-use startup::{get_connection_pool, Application};
+use sqlx::SqlitePool;
+use startup::{get_pool, Application};
 use uuid::Uuid;
 use wiremock::MockServer;
 
@@ -24,9 +24,10 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 
 pub struct TestApp {
     pub address: String,
-    pub pool: PgPool,
+    pub pool: SqlitePool,
     pub email_server: MockServer,
     pub port: u16,
+    pub db_name: String,
 }
 
 pub struct ConfirmationLinks {
@@ -133,38 +134,21 @@ pub async fn spawn_app() -> TestApp {
 
     let application_port = application.port();
 
-    // // get the port before spawning the application
-    // // because spawn would move `application`
-    // let address = format!("127.0.0.1:{}", application.port());
+    // get the port before spawning the application
+    // because spawn would move `application`
     let _ = tokio::spawn(application.run_until_stopped());
 
     TestApp {
         address: format!("http://localhost:{}", application_port),
-        pool: get_connection_pool(&configuration.database),
+        pool: get_pool(&configuration.database),
         email_server,
         port: application_port,
+        db_name: format!("{}", configuration.database.database_name),
     }
 }
 
-async fn configure_database(config: &DatabaseSettings) -> PgPool {
-    // it's not really a pool, it's just one connection, so connection would be a better name
-    // but we'll leave it as pool
-
-    // create database without a name, `PgConnection` just a connection
-    let mut pool = PgConnection::connect_with(&config.without_db())
-        .await
-        .expect("Failed to connect to postgres");
-
-    // create database with our random database name
-    pool.execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
-        .await
-        .expect("Failed to create database");
-
-    // migrate our new random database
-    // `PgPool`
-    let pool = PgPool::connect_with(config.with_db())
-        .await
-        .expect("Failed to connect to postgres");
+async fn configure_database(config: &DatabaseSettings) -> SqlitePool {
+    let pool = get_pool(&config);
     sqlx::migrate!("./migrations")
         .run(&pool)
         .await
@@ -172,7 +156,6 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
 
     pool
 }
-
 fn process_multipart(mut body: String) -> HashMap<String, String> {
     let mut form_data = HashMap::new();
 
@@ -203,4 +186,9 @@ fn process_multipart(mut body: String) -> HashMap<String, String> {
     }
 
     form_data
+}
+
+pub async fn cleanup_test_db(db_name: &String) -> Result<(), sqlx::Error> {
+    remove_file(&format!("{}.db", db_name))?;
+    Ok(())
 }

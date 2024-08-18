@@ -10,8 +10,8 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use sqlx::postgres::PgPoolOptions;
-use sqlx::PgPool;
+use sqlx::sqlite::SqlitePoolOptions;
+use sqlx::SqlitePool;
 use tower_http::trace::TraceLayer;
 use uuid::Uuid;
 
@@ -22,7 +22,7 @@ pub struct Application {
 
 impl Application {
     pub async fn build(configuration: Settings) -> Result<Self, std::io::Error> {
-        let pool = get_connection_pool(&configuration.database);
+        let pool = get_pool(&configuration.database);
 
         let sender_email = configuration
             .email_client
@@ -63,7 +63,7 @@ impl Application {
 
 pub fn run(
     listener: std::net::TcpListener,
-    pool: PgPool,
+    pool: SqlitePool,
     email_client: EmailClient,
     base_url: String,
 ) -> Result<Serve<Router, Router>, std::io::Error> {
@@ -114,12 +114,13 @@ pub fn run(
 
 #[derive(Clone)]
 pub struct AppState {
-    pub pool: PgPool,
+    pub pool: SqlitePool,
     pub email_client: Arc<EmailClient>,
     pub base_url: Arc<String>,
 }
 
 // we made this function so that build_router_and_listener could work on tests/helpers/spawn_app() fn with no problems
-pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
-    PgPoolOptions::new().connect_lazy_with(configuration.with_db())
+pub fn get_pool(configuration: &DatabaseSettings) -> SqlitePool {
+    SqlitePoolOptions::new()
+        .connect_lazy_with(configuration.connect_options_with_db_file_or_create_if_missing())
 }

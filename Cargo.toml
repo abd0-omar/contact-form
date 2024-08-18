@@ -19,7 +19,7 @@ axum = "0.7.5"
 serde = { version = "1.0.203", features = ["derive"] }
 tokio = { version = "1.38.0", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["fs", "trace"] }
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "macros", "postgres", "uuid", "chrono", "migrate"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "macros", "sqlite", "uuid", "chrono", "migrate"] }
 config = {version = "0.14", features = ["yaml"]}
 uuid = { version = "1.9.1", features = ["v4"] }
 tower = "0.4.13"

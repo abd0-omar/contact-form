@@ -2,14 +2,7 @@ application:
   port: 8000
   host: 0.0.0.0
 database:
-  # will get overridden by the env variable that is used when running
-  host: "localhost"
-  port: 5432
-  username: "postgres"
-  password: "password"
   database_name: "newsletter"
-  # will get overridden by the env variable that is used when running
-  require_ssl: "false"
 email_client:
   base_url: "localhost"
   sender_email: "testes@gmail.com"

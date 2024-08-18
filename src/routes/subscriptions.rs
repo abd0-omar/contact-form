@@ -7,7 +7,7 @@ use serde::Deserialize;
 use axum::http::StatusCode;
 
 use chrono::Utc;
-use sqlx::{Executor, Postgres, Transaction};
+use sqlx::{Executor, Sqlite, Transaction};
 use uuid::Uuid;
 
 use crate::{
@@ -171,19 +171,23 @@ pub async fn send_confirmation_email(
     skip(new_subscriber, transaction)
 )]
 pub async fn insert_subscriber(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut Transaction<'_, Sqlite>,
     new_subscriber: NewSubscriber,
 ) -> Result<Uuid, sqlx::Error> {
     let subscriber_id = Uuid::new_v4();
+    let subscriber_id_string = subscriber_id.to_string();
+    let subscriber_name = new_subscriber.name.as_ref();
+    let subscriber_email = new_subscriber.email.as_ref();
+    let time_now = Utc::now();
     let query = sqlx::query!(
         r#"
     INSERT INTO subscriptions (id, email, name, subscribed_at, status)
     VALUES ($1, $2, $3, $4, 'pending_confirmation')
             "#,
-        subscriber_id,
-        new_subscriber.email.as_ref(),
-        new_subscriber.name.as_ref(),
-        Utc::now()
+        subscriber_id_string,
+        subscriber_email,
+        subscriber_name,
+        time_now
     );
     transaction.execute(query).await.map_err(|e| {
         tracing::error!("Failed to execute query: {:?}", e);
@@ -205,17 +209,18 @@ fn generate_subscription_token() -> String {
     skip(subscription_token, transaction)
 )]
 async fn store_subscription_token(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut Transaction<'_, Sqlite>,
     subscriber_id: Uuid,
     subscription_token: &str,
 ) -> Result<(), sqlx::Error> {
+    let subscriber_id_string = subscriber_id.to_string();
     let query = sqlx::query!(
         r#"
     INSERT INTO subscription_tokens (subscription_token , subscriber_id)
     VALUES ($1, $2)
         "#,
         subscription_token,
-        subscriber_id
+        subscriber_id_string
     );
     transaction.execute(query).await.map_err(|e| {
         tracing::error!("Failed to execute query: {:?}", e);
