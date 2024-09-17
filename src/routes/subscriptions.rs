@@ -7,7 +7,7 @@ use serde::Deserialize;
 use axum::http::StatusCode;
 
 use chrono::Utc;
-use sqlx::{Executor, Sqlite, Transaction};
+use sqlx::{error::DatabaseError, Executor, Sqlite, Transaction};
 use uuid::Uuid;
 
 use crate::{
@@ -51,85 +51,30 @@ impl TryFrom<FormData> for NewSubscriber {
 pub async fn subscribe(
     State(app_state): State<AppState>,
     Form(form): Form<FormData>,
-) -> impl IntoResponse {
-    let new_subscriber: NewSubscriber = match form.clone().try_into() {
-        Ok(form) => form,
-        Err(_) => {
-            return (
-                axum::http::StatusCode::UNPROCESSABLE_ENTITY,
-                FormData {
-                    name: form.name,
-                    email: form.email,
-                    error: Some(FormError::BadEmail),
-                },
-            )
-                .into_response();
-        }
-    };
+) -> Result<StatusCode, SubscribeError> {
+    let new_subscriber: NewSubscriber = form.clone().try_into()?;
 
-    let mut transaction = match app_state.pool.begin().await {
-        Ok(transaction) => transaction,
-        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-    };
+    let mut transaction = app_state.pool.begin().await?;
 
-    // returning a template
-    let subscriber_id = match insert_subscriber(&mut transaction, new_subscriber.clone()).await {
-        Ok(subscriber_id) => subscriber_id,
-        Err(_) => {
-            return (
-                // email already in db or could be that query didn't make it
-                axum::http::StatusCode::CONFLICT,
-                FormData {
-                    name: new_subscriber.name.into(),
-                    email: new_subscriber.email.into(),
-                    error: Some(FormError::ConflictOrQueryBlewUp),
-                },
-            )
-                .into_response();
-        }
-    };
+    let subscriber_id = insert_subscriber(&mut transaction, new_subscriber.clone()).await?;
 
     let subscription_token = generate_subscription_token();
-    if store_subscription_token(&mut transaction, subscriber_id, &subscription_token)
-        .await
-        .is_err()
-    {
-        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-    }
 
-    if transaction.commit().await.is_err() {
-        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-    }
+    store_subscription_token(&mut transaction, subscriber_id, &subscription_token).await?;
+
+    transaction.commit().await?;
 
     let email_client = app_state.email_client;
 
-    if send_confirmation_email(
+    send_confirmation_email(
         &email_client,
         &new_subscriber,
         &app_state.base_url,
         &subscription_token,
     )
-    .await
-    .is_err()
-    {
-        return (
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            FormData {
-                name: new_subscriber.name.into(),
-                email: new_subscriber.email.into(),
-                error: Some(FormError::ConflictOrQueryBlewUp),
-            },
-        )
-            .into_response();
-    }
+    .await?;
 
-    // status code by default would be 200 OK
-    FormData {
-        name: new_subscriber.name.into(),
-        email: new_subscriber.email.into(),
-        error: None,
-    }
-    .into_response()
+    Ok(StatusCode::OK)
 }
 
 #[tracing::instrument(
@@ -212,7 +157,7 @@ async fn store_subscription_token(
     transaction: &mut Transaction<'_, Sqlite>,
     subscriber_id: Uuid,
     subscription_token: &str,
-) -> Result<(), sqlx::Error> {
+) -> Result<(), StoreTokenError> {
     let subscriber_id_string = subscriber_id.to_string();
     let query = sqlx::query!(
         r#"
@@ -223,8 +168,139 @@ async fn store_subscription_token(
         subscriber_id_string
     );
     transaction.execute(query).await.map_err(|e| {
-        tracing::error!("Failed to execute query: {:?}", e);
-        e
+        StoreTokenError(e)
+        // tracing::error!("Failed to execute query: {:?}", e);
+        // e
     })?;
     Ok(())
+}
+
+pub struct StoreTokenError(sqlx::Error);
+
+impl std::fmt::Display for StoreTokenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "A database error was encountered while \
+            trying to store a subscription token."
+        )
+    }
+}
+
+impl std::fmt::Debug for StoreTokenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
+impl axum::response::IntoResponse for StoreTokenError {
+    fn into_response(self) -> askama_axum::Response {
+        // let sqlx_error = self.0;
+        // let body = format!(
+        //     "error when inserting a store token with sqlx error: {}",
+        //     sqlx_error
+        // );
+        //
+        // (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
+        format!("{}", self).into_response()
+    }
+}
+
+impl std::error::Error for StoreTokenError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.0)
+    }
+}
+
+fn error_chain_fmt(
+    e: &impl std::error::Error,
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
+    writeln!(f, "{}\n", e)?;
+    let mut current = e.source();
+    while let Some(cause) = current {
+        writeln!(f, "Caused by:\n\t{}", cause)?;
+        current = cause.source();
+    }
+    Ok(())
+}
+
+pub enum SubscribeError {
+    ValidationError(String),
+    DatabaseError(sqlx::Error),
+    StoreTokenError(StoreTokenError),
+    SendEmailError(reqwest::Error),
+}
+impl From<StoreTokenError> for SubscribeError {
+    fn from(value: StoreTokenError) -> Self {
+        SubscribeError::StoreTokenError(value)
+    }
+}
+impl From<reqwest::Error> for SubscribeError {
+    fn from(value: reqwest::Error) -> Self {
+        SubscribeError::SendEmailError(value)
+    }
+}
+
+impl From<sqlx::Error> for SubscribeError {
+    fn from(value: sqlx::Error) -> Self {
+        SubscribeError::DatabaseError(value)
+    }
+}
+
+impl From<String> for SubscribeError {
+    fn from(value: String) -> Self {
+        SubscribeError::ValidationError(value)
+    }
+}
+
+// intoresponse, dispaly, debug error chain, error for source, from
+
+impl std::fmt::Debug for SubscribeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
+impl std::error::Error for SubscribeError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            // &str does not implement `Error`- we consider it the root cause
+            SubscribeError::ValidationError(_) => None,
+            SubscribeError::DatabaseError(e) => Some(e),
+            SubscribeError::StoreTokenError(e) => Some(e),
+            SubscribeError::SendEmailError(e) => Some(e),
+        }
+    }
+}
+
+impl IntoResponse for SubscribeError {
+    fn into_response(self) -> askama_axum::Response {
+        match &self {
+            SubscribeError::ValidationError(_) => StatusCode::BAD_REQUEST,
+            SubscribeError::DatabaseError(_)
+            | SubscribeError::StoreTokenError(_)
+            | SubscribeError::SendEmailError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+        .into_response()
+    }
+}
+
+impl std::fmt::Display for SubscribeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SubscribeError::ValidationError(e) => write!(f, "{}", e),
+            // What should we do here?
+            SubscribeError::DatabaseError(_) => {
+                write!(f, "Failed Database error")
+            }
+            SubscribeError::StoreTokenError(_) => write!(
+                f,
+                "Failed to store the confirmation token for a new subscriber."
+            ),
+            SubscribeError::SendEmailError(_) => {
+                write!(f, "Failed to send a confirmation email.")
+            }
+        }
+    }
 }

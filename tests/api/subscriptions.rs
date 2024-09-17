@@ -186,7 +186,7 @@ async fn subscribe_returns_a_422_when_fields_are_present_but_invalid() {
         // Assert
         assert_eq!(
             response.status(),
-            StatusCode::UNPROCESSABLE_ENTITY,
+            StatusCode::BAD_REQUEST,
             "The API did not return a 422 Bad Request when the payload was {}.",
             description
         );
@@ -195,4 +195,23 @@ async fn subscribe_returns_a_422_when_fields_are_present_but_invalid() {
     cleanup_test_db(&app.db_name)
         .await
         .expect(&format!("Failed to delete test database {}", app.db_name));
+}
+
+#[tokio::test]
+async fn subscribe_fails_if_there_is_a_fatal_database_error() {
+    // Arrange
+    let app = spawn_app().await;
+    let body = HashMap::from([("name", "le guin"), ("email", "ursula_le_guin@gmail.com")]);
+
+    // Sabotage the database
+    sqlx::query!("ALTER TABLE subscriptions DROP COLUMN name;")
+        .execute(&app.pool)
+        .await
+        .unwrap();
+
+    // Act
+    let response = app.post_subscriptions(body).await;
+
+    // Assert
+    assert_eq!(response.status().as_u16(), 500);
 }
