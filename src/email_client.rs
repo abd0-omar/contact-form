@@ -2,8 +2,6 @@ use crate::domain::SubscriberEmail;
 use reqwest::Client;
 use secrecy::{ExposeSecret, Secret};
 
-// I'm using "mailgun" not "postmark"
-
 #[derive(Clone)]
 pub struct EmailClient {
     http_client: Client,

@@ -72,11 +72,7 @@ impl TestApp {
     }
 
     pub fn get_confirmation_links(&self, email_request: &wiremock::Request) -> ConfirmationLinks {
-        // postmark
-        // let body: serde_json::Value = serde_json::from_slice(&email_request.body).unwrap();
-        // mailgun
-        let body = String::from_utf8(email_request.body.clone()).unwrap();
-        let body = process_multipart(body);
+        let body: serde_json::Value = serde_json::from_slice(&email_request.body).unwrap();
 
         // Extract the link from one of the request fields.
         let get_link = |s: &str| {
@@ -93,14 +89,8 @@ impl TestApp {
             confirmation_link
         };
 
-        //postmark
-        // let html = get_link(body["HtmlBody"].as_str().unwrap());
-        // let plain_text = get_link(body["TextBody"].as_str().unwrap());
-
-        // mailgun
-        let html = get_link(body["html"].as_str());
-        let plain_text = get_link(body["text"].as_str());
-
+        let html = get_link(body["HtmlBody"].as_str().unwrap());
+        let plain_text = get_link(body["TextBody"].as_str().unwrap());
         ConfirmationLinks { html, plain_text }
     }
 }
@@ -155,37 +145,6 @@ async fn configure_database(config: &DatabaseSettings) -> SqlitePool {
         .expect("Failed to migrate the database");
 
     pool
-}
-fn process_multipart(mut body: String) -> HashMap<String, String> {
-    let mut form_data = HashMap::new();
-
-    let disposal = "Content-Disposition: form-data; name=";
-
-    dbg!(&body);
-
-    loop {
-        // let index = if let Some(idx) = body.find(disposal).unwrap() + disposal.len() + 1;
-        let index = if let Some(idx) = body.find(disposal) {
-            idx + disposal.len() + 1
-        } else {
-            break;
-        };
-        let index_end = body[index..].find("\r\n\r\n").unwrap() + index - 1;
-        dbg!(index);
-        dbg!(index_end);
-        let key = &body[index..index_end].to_string();
-        dbg!(&key);
-        let second_end = body[index_end + 10..].find("\r\n").unwrap() + index_end + 10;
-        dbg!(index_end);
-        dbg!(second_end);
-        let value = &body[index_end + 5..second_end].to_string();
-        dbg!(&value);
-        body = body[second_end..].to_string();
-        dbg!(&body);
-        form_data.insert(key.to_owned(), value.to_owned());
-    }
-
-    form_data
 }
 
 pub async fn cleanup_test_db(db_name: &String) -> Result<(), sqlx::Error> {

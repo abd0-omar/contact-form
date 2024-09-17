@@ -22,7 +22,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
     body.insert("name", "hamada_test");
     body.insert("email", "hamada_test@yahoo.com");
 
-    Mock::given(path("/messages"))
+    Mock::given(path("/email"))
         .and(method("POST"))
         .respond_with(ResponseTemplate::new(200))
         .mount(&app.email_server)
@@ -82,7 +82,7 @@ async fn subscribe_sends_a_confirmation_email_for_valid_data() {
     let app = spawn_app().await;
     let body = HashMap::from([("name", "Shady Khalifa"), ("email", "shekohex@gmail.com")]);
 
-    Mock::given(path("/messages"))
+    Mock::given(path("/email"))
         .and(method("POST"))
         .respond_with(ResponseTemplate::new(200))
         .expect(1)
@@ -214,4 +214,8 @@ async fn subscribe_fails_if_there_is_a_fatal_database_error() {
 
     // Assert
     assert_eq!(response.status().as_u16(), 500);
+
+    cleanup_test_db(&app.db_name)
+        .await
+        .expect(&format!("Failed to delete test database {}", app.db_name));
 }

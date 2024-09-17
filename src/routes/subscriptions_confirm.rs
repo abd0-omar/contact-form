@@ -1,9 +1,11 @@
+use anyhow::Context;
 use axum::http::StatusCode;
 use axum::{
     extract::{Query, State},
     response::IntoResponse,
 };
 use sqlx::SqlitePool;
+use thiserror;
 use uuid::Uuid;
 
 use crate::startup::AppState;
@@ -14,34 +16,64 @@ pub struct Parameters {
     subscription_token: String,
 }
 
+#[derive(thiserror::Error)]
+pub enum ConfirmationError {
+    #[error(transparent)]
+    UnexpectedError(#[from] anyhow::Error),
+    #[error("There is no subscriber associated with the provided token.")]
+    UnknownToken,
+}
+
+impl std::fmt::Debug for ConfirmationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
+fn error_chain_fmt(
+    e: &impl std::error::Error,
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
+    writeln!(f, "{}\n", e)?;
+    let mut current = e.source();
+    while let Some(cause) = current {
+        writeln!(f, "Caused by:\n\t{}", cause)?;
+        current = cause.source();
+    }
+    Ok(())
+}
+
+// steps for implementing error
+// IntoResponse status code, Dispaly, Debug error chain, error for source
+impl IntoResponse for ConfirmationError {
+    fn into_response(self) -> askama_axum::Response {
+        match self {
+            ConfirmationError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ConfirmationError::UnknownToken => StatusCode::UNAUTHORIZED,
+        }
+        .into_response()
+    }
+}
+
 #[tracing::instrument(name = "Confirm a pending subscriber", skip(parameter, app_state))]
 #[allow(unused_variables)]
 pub async fn confirm(
     Query(parameter): Query<Parameters>,
     State(app_state): State<AppState>,
-) -> impl IntoResponse {
+) -> Result<StatusCode, ConfirmationError> {
     // parameter have the subscription_token
     // confirm?my_token
     // extract the token and get the subscription table through the subscription_id
-    let id =
-        match get_subscriber_id_from_token(&app_state.pool, &parameter.subscription_token).await {
-            Ok(id) => id,
-            Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
-        };
+    let subscriber_id =
+        get_subscriber_id_from_token(&app_state.pool, &parameter.subscription_token)
+            .await
+            .context("Failed to retrieve the subscriber id associated with the provided token.")?
+            .ok_or(ConfirmationError::UnknownToken)?;
 
-    match id {
-        // Non-existing token
-        None => return StatusCode::UNAUTHORIZED,
-        Some(subscriber_id) => {
-            if confirm_subscriber(&app_state.pool, subscriber_id)
-                .await
-                .is_err()
-            {
-                return StatusCode::INTERNAL_SERVER_ERROR;
-            }
-            StatusCode::OK
-        }
-    }
+    confirm_subscriber(&app_state.pool, subscriber_id)
+        .await
+        .context("Failed to update the subscriber status to `confirmed`.")?;
+    Ok(StatusCode::OK)
 }
 
 #[tracing::instrument(

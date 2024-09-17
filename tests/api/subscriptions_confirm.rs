@@ -34,7 +34,7 @@ async fn the_link_returned_by_subscribe_returns_a_200_if_called() {
     let body = HashMap::from([("name", "Steve Carell"), ("email", "theoffice@yahoo.com")]);
 
     // acts as the mailgun server
-    Mock::given(path("/messages"))
+    Mock::given(path("/email"))
         .and(method("POST"))
         .respond_with(ResponseTemplate::new(200))
         .mount(&app.email_server)
@@ -61,7 +61,7 @@ async fn clicking_on_the_confirmation_link_confirms_a_subscriber() {
     let app = spawn_app().await;
     let body = HashMap::from([("name", "John Mayer"), ("email", "stop@train.com")]);
 
-    Mock::given(path("/messages"))
+    Mock::given(path("/email"))
         .and(method("POST"))
         .respond_with(ResponseTemplate::new(200))
         .mount(&app.email_server)

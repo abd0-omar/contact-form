@@ -1,3 +1,4 @@
+use anyhow::Context;
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::{extract::State, Form};
@@ -7,7 +8,7 @@ use serde::Deserialize;
 use axum::http::StatusCode;
 
 use chrono::Utc;
-use sqlx::{error::DatabaseError, Executor, Sqlite, Transaction};
+use sqlx::{Executor, Sqlite, Transaction};
 use uuid::Uuid;
 
 use crate::{
@@ -52,17 +53,31 @@ pub async fn subscribe(
     State(app_state): State<AppState>,
     Form(form): Form<FormData>,
 ) -> Result<StatusCode, SubscribeError> {
-    let new_subscriber: NewSubscriber = form.clone().try_into()?;
+    let new_subscriber: NewSubscriber = form
+        .clone()
+        .try_into()
+        .map_err(SubscribeError::ValidationError)?;
 
-    let mut transaction = app_state.pool.begin().await?;
+    let mut transaction = app_state
+        .pool
+        .begin()
+        .await
+        .context("Failed to acquire a Sqlite connection from the pool")?;
 
-    let subscriber_id = insert_subscriber(&mut transaction, new_subscriber.clone()).await?;
+    let subscriber_id = insert_subscriber(&mut transaction, new_subscriber.clone())
+        .await
+        .context("Failed to insert new subscriber in the database.")?;
 
     let subscription_token = generate_subscription_token();
 
-    store_subscription_token(&mut transaction, subscriber_id, &subscription_token).await?;
+    store_subscription_token(&mut transaction, subscriber_id, &subscription_token)
+        .await
+        .context("Failed to store the confirmation token for a new subscriber.")?;
 
-    transaction.commit().await?;
+    transaction
+        .commit()
+        .await
+        .context("Failed to commit SQL transaction to store a new subscriber.")?;
 
     let email_client = app_state.email_client;
 
@@ -72,7 +87,8 @@ pub async fn subscribe(
         &app_state.base_url,
         &subscription_token,
     )
-    .await?;
+    .await
+    .context("Failed to send a confirmation email.")?;
 
     Ok(StatusCode::OK)
 }
@@ -102,7 +118,7 @@ pub async fn send_confirmation_email(
         confirmation_link
     );
     email_client
-        .send_email_mailgun(
+        .send_email_postmark(
             new_subscriber.clone().email,
             "Wilkommen!",
             &html_body,
@@ -225,36 +241,13 @@ fn error_chain_fmt(
     Ok(())
 }
 
+#[derive(thiserror::Error)]
 pub enum SubscribeError {
+    #[error("{0}")]
     ValidationError(String),
-    DatabaseError(sqlx::Error),
-    StoreTokenError(StoreTokenError),
-    SendEmailError(reqwest::Error),
+    #[error(transparent)]
+    UnexpectedError(#[from] anyhow::Error),
 }
-impl From<StoreTokenError> for SubscribeError {
-    fn from(value: StoreTokenError) -> Self {
-        SubscribeError::StoreTokenError(value)
-    }
-}
-impl From<reqwest::Error> for SubscribeError {
-    fn from(value: reqwest::Error) -> Self {
-        SubscribeError::SendEmailError(value)
-    }
-}
-
-impl From<sqlx::Error> for SubscribeError {
-    fn from(value: sqlx::Error) -> Self {
-        SubscribeError::DatabaseError(value)
-    }
-}
-
-impl From<String> for SubscribeError {
-    fn from(value: String) -> Self {
-        SubscribeError::ValidationError(value)
-    }
-}
-
-// intoresponse, dispaly, debug error chain, error for source, from
 
 impl std::fmt::Debug for SubscribeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -262,45 +255,12 @@ impl std::fmt::Debug for SubscribeError {
     }
 }
 
-impl std::error::Error for SubscribeError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            // &str does not implement `Error`- we consider it the root cause
-            SubscribeError::ValidationError(_) => None,
-            SubscribeError::DatabaseError(e) => Some(e),
-            SubscribeError::StoreTokenError(e) => Some(e),
-            SubscribeError::SendEmailError(e) => Some(e),
-        }
-    }
-}
-
 impl IntoResponse for SubscribeError {
     fn into_response(self) -> askama_axum::Response {
-        match &self {
+        match self {
             SubscribeError::ValidationError(_) => StatusCode::BAD_REQUEST,
-            SubscribeError::DatabaseError(_)
-            | SubscribeError::StoreTokenError(_)
-            | SubscribeError::SendEmailError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            SubscribeError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
         .into_response()
-    }
-}
-
-impl std::fmt::Display for SubscribeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SubscribeError::ValidationError(e) => write!(f, "{}", e),
-            // What should we do here?
-            SubscribeError::DatabaseError(_) => {
-                write!(f, "Failed Database error")
-            }
-            SubscribeError::StoreTokenError(_) => write!(
-                f,
-                "Failed to store the confirmation token for a new subscriber."
-            ),
-            SubscribeError::SendEmailError(_) => {
-                write!(f, "Failed to send a confirmation email.")
-            }
-        }
     }
 }
