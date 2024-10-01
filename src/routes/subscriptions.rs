@@ -119,7 +119,7 @@ pub async fn send_confirmation_email(
     );
     email_client
         .send_email_postmark(
-            new_subscriber.clone().email,
+            &new_subscriber.email,
             "Wilkommen!",
             &html_body,
             &plain_body,

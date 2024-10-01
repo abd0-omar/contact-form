@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::email_client::EmailClient;
 use crate::routes::greet::greet;
+use crate::routes::publish_newsletter;
 use crate::routes::subscriptions_confirm::confirm;
 use crate::routes::{health_check::health_check, index::index, subscriptions::subscribe};
 use axum::serve::Serve;
@@ -82,6 +83,7 @@ pub fn run(
         .route("/path", get(greet))
         .route("/path/:name", get(greet))
         .route("/subscriptions/confirm", get(confirm))
+        .route("/newsletters", post(publish_newsletter))
         .layer(TraceLayer::new_for_http().make_span_with(
             |request: &axum::http::Request<axum::body::Body>| {
                 let request_id = Uuid::new_v4();
