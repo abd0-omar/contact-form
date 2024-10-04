@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use crate::helpers::{cleanup_test_db, spawn_app, ConfirmationLinks, TestApp};
-use rand::rngs::mock;
 use wiremock::matchers::{any, method, path};
 use wiremock::{Mock, ResponseTemplate};
 
