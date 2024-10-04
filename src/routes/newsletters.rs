@@ -5,13 +5,14 @@ use reqwest::StatusCode;
 use serde::Deserialize;
 use sqlx::SqlitePool;
 
-use crate::{domain::SubscriberEmail, email_client::EmailClient};
+use crate::{domain::SubscriberEmail, startup::AppState};
 
 pub async fn publish_newsletter(
+    State(app_state): State<AppState>,
     Json(body): Json<BodyData>,
-    State(email_client): State<EmailClient>,
-    State(pool): State<SqlitePool>,
 ) -> Result<impl IntoResponse, PublishError> {
+    let pool = app_state.pool;
+    let email_client = app_state.email_client;
     let subscribers = get_confirmed_subscribers(&pool).await?;
     for subscriber in subscribers {
         match subscriber {
