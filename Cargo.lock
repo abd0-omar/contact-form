@@ -403,6 +403,7 @@ dependencies = [
  "askama",
  "askama_axum",
  "axum",
+ "base64 0.22.1",
  "chrono",
  "claims",
  "config",

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::helpers::{cleanup_test_db, spawn_app, ConfirmationLinks, TestApp};
+use reqwest::StatusCode;
 use wiremock::matchers::{any, method, path};
 use wiremock::{Mock, ResponseTemplate};
 
@@ -134,6 +135,40 @@ async fn newsletters_returns_400_for_invalid_data() {
             error_message
         );
     }
+
+    cleanup_test_db(&app.db_name)
+        .await
+        .expect(&format!("Failed to delete test database {}", app.db_name));
+}
+
+#[tokio::test]
+async fn requests_missing_authorization_are_rejected() {
+    // Arrange
+    let app = spawn_app().await;
+
+    // Act
+    let body = serde_json::json!({
+    "title": "Newsletter title",
+    "content": {
+    "text": "Newsletter body as plain text",
+    "html": "<p>Newsletter body as HTML</p>",
+    }
+    });
+
+    let response = reqwest::Client::new()
+        .post(&format!("{}/newsletters", app.address))
+        .json(&body)
+        .send()
+        .await
+        .unwrap();
+
+    // result, output
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    // WWW-Authenticate: Basic realm="publish"
+    assert_eq!(
+        r#"Basic realm="publish""#,
+        response.headers()["WWW-Authenticate"]
+    );
 
     cleanup_test_db(&app.db_name)
         .await

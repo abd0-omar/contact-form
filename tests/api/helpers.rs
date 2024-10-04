@@ -37,12 +37,14 @@ pub struct ConfirmationLinks {
 
 impl TestApp {
     pub async fn post_newsletters(&self, body: serde_json::Value) -> reqwest::Response {
+        let (username, password) = self.test_user().await;
         reqwest::Client::new()
             .post(&format!("{}/newsletters", &self.address))
+            .basic_auth(username, Some(password))
             .json(&body)
             .send()
             .await
-            .expect("Failedtoexecute request.")
+            .expect("Failed to execute request.")
     }
 
     pub async fn post_subscriptions(&self, form: HashMap<&str, &str>) -> reqwest::Response {
@@ -102,6 +104,14 @@ impl TestApp {
         let plain_text = get_link(body["TextBody"].as_str().unwrap());
         ConfirmationLinks { html, plain_text }
     }
+
+    async fn test_user(&self) -> (String, String) {
+        let row = sqlx::query!("SELECT username,password FROM users LIMIT 1",)
+            .fetch_one(&self.pool)
+            .await
+            .expect("Failedtocreatetestusers.");
+        (row.username, row.password)
+    }
 }
 
 pub async fn spawn_app() -> TestApp {
@@ -137,13 +147,32 @@ pub async fn spawn_app() -> TestApp {
     // because spawn would move `application`
     let _ = tokio::spawn(application.run_until_stopped());
 
-    TestApp {
+    let test_app = TestApp {
         address: format!("http://localhost:{}", application_port),
         pool: get_pool(&configuration.database),
         email_server,
         port: application_port,
         db_name: format!("{}", configuration.database.database_name),
-    }
+    };
+    add_test_user(&test_app.pool).await;
+    test_app
+}
+
+async fn add_test_user(pool: &SqlitePool) {
+    // maybe change from uuid to string
+    let user_id = Uuid::new_v4().to_string();
+    let username = Uuid::new_v4().to_string();
+    let password = Uuid::new_v4().to_string();
+    sqlx::query!(
+        "INSERT INTO users(user_id,username,password)
+ VALUES($1,$2,$3)",
+        user_id,
+        username,
+        password,
+    )
+    .execute(pool)
+    .await
+    .expect("Failed to create test users.");
 }
 
 async fn configure_database(config: &DatabaseSettings) -> SqlitePool {
