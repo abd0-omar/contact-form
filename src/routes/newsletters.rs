@@ -1,10 +1,11 @@
 use anyhow::Context;
-use askama_axum::{IntoResponse, Response};
+use askama_axum::IntoResponse;
 use axum::{extract::State, http::HeaderMap, Json};
 use base64::Engine;
 use reqwest::StatusCode;
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
+use sha3::Digest;
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
@@ -19,7 +20,6 @@ pub async fn publish_newsletter(
     headers: HeaderMap,
     State(app_state): State<AppState>,
     Json(body): Json<BodyData>,
-    // request: Request,
 ) -> Result<impl IntoResponse, PublishError> {
     let pool = app_state.pool;
     let email_client = app_state.email_client;
@@ -130,17 +130,18 @@ async fn validate_credentials(
     credentials: Credentials,
     pool: &SqlitePool,
 ) -> Result<Uuid, PublishError> {
-    let password = credentials.password.expose_secret();
+    let password_hash = sha3::Sha3_256::digest(credentials.password.expose_secret().as_bytes());
+    let password_hash = format!("{:x}", password_hash);
 
     // Query to retrieve the user ID based on the username and password
     let user_id_row = sqlx::query!(
         r#"
         SELECT user_id
         FROM users
-        WHERE username = ? AND password = ?
+        WHERE username = $1 AND password_hash = $2
         "#,
         credentials.username,
-        password
+        password_hash
     )
     .fetch_optional(pool)
     .await

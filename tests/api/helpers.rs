@@ -3,6 +3,7 @@ use std::{collections::HashMap, fs::remove_file};
 use configuration::{get_configuration, DatabaseSettings};
 use contact_form::*;
 use once_cell::sync::Lazy;
+use sha3::Digest;
 use sqlx::SqlitePool;
 use startup::{get_pool, Application};
 use uuid::Uuid;
@@ -28,6 +29,7 @@ pub struct TestApp {
     pub email_server: MockServer,
     pub port: u16,
     pub db_name: String,
+    pub test_user: TestUser,
 }
 
 pub struct ConfirmationLinks {
@@ -37,10 +39,9 @@ pub struct ConfirmationLinks {
 
 impl TestApp {
     pub async fn post_newsletters(&self, body: serde_json::Value) -> reqwest::Response {
-        let (username, password) = self.test_user().await;
         reqwest::Client::new()
             .post(&format!("{}/newsletters", &self.address))
-            .basic_auth(username, Some(password))
+            .basic_auth(&self.test_user.username, Some(&self.test_user.password))
             .json(&body)
             .send()
             .await
@@ -104,14 +105,6 @@ impl TestApp {
         let plain_text = get_link(body["TextBody"].as_str().unwrap());
         ConfirmationLinks { html, plain_text }
     }
-
-    async fn test_user(&self) -> (String, String) {
-        let row = sqlx::query!("SELECT username,password FROM users LIMIT 1",)
-            .fetch_one(&self.pool)
-            .await
-            .expect("Failedtocreatetestusers.");
-        (row.username, row.password)
-    }
 }
 
 pub async fn spawn_app() -> TestApp {
@@ -153,26 +146,10 @@ pub async fn spawn_app() -> TestApp {
         email_server,
         port: application_port,
         db_name: format!("{}", configuration.database.database_name),
+        test_user: TestUser::generate(),
     };
-    add_test_user(&test_app.pool).await;
+    test_app.test_user.store(&test_app.pool).await;
     test_app
-}
-
-async fn add_test_user(pool: &SqlitePool) {
-    // maybe change from uuid to string
-    let user_id = Uuid::new_v4().to_string();
-    let username = Uuid::new_v4().to_string();
-    let password = Uuid::new_v4().to_string();
-    sqlx::query!(
-        "INSERT INTO users(user_id,username,password)
- VALUES($1,$2,$3)",
-        user_id,
-        username,
-        password,
-    )
-    .execute(pool)
-    .await
-    .expect("Failed to create test users.");
 }
 
 async fn configure_database(config: &DatabaseSettings) -> SqlitePool {
@@ -183,6 +160,41 @@ async fn configure_database(config: &DatabaseSettings) -> SqlitePool {
         .expect("Failed to migrate the database");
 
     pool
+}
+
+pub struct TestUser {
+    user_id: Uuid,
+    username: String,
+    password: String,
+}
+
+impl TestUser {
+    fn generate() -> Self {
+        Self {
+            user_id: Uuid::new_v4(),
+            username: Uuid::new_v4().to_string(),
+            password: Uuid::new_v4().to_string(),
+        }
+    }
+
+    async fn store(&self, pool: &SqlitePool) {
+        let password_hash = sha3::Sha3_256::digest(self.password.as_bytes());
+        let password_hash = format!("{:x}", password_hash);
+
+        // because sqlite doesn't have uuid type
+        let user_id = self.user_id.to_string();
+        sqlx::query!(
+            r#"
+        INSERT INTO users(user_id, username, password_hash) VALUES($1, $2, $3)
+        "#,
+            user_id,
+            self.username,
+            password_hash
+        )
+        .execute(pool)
+        .await
+        .expect("Failed to store test user.");
+    }
 }
 
 pub async fn cleanup_test_db(db_name: &String) -> Result<(), sqlx::Error> {
