@@ -1,9 +1,10 @@
+use argon2::{Algorithm, Params, PasswordHasher, Version};
 use std::{collections::HashMap, fs::remove_file};
 
+use argon2::{password_hash::SaltString, Argon2};
 use configuration::{get_configuration, DatabaseSettings};
 use contact_form::*;
 use once_cell::sync::Lazy;
-use sha3::Digest;
 use sqlx::SqlitePool;
 use startup::{get_pool, Application};
 use uuid::Uuid;
@@ -164,8 +165,8 @@ async fn configure_database(config: &DatabaseSettings) -> SqlitePool {
 
 pub struct TestUser {
     user_id: Uuid,
-    username: String,
-    password: String,
+    pub username: String,
+    pub password: String,
 }
 
 impl TestUser {
@@ -178,8 +179,16 @@ impl TestUser {
     }
 
     async fn store(&self, pool: &SqlitePool) {
-        let password_hash = sha3::Sha3_256::digest(self.password.as_bytes());
-        let password_hash = format!("{:x}", password_hash);
+        let salt = SaltString::generate(&mut rand::thread_rng());
+        // We// Match parameters of the default password
+        let password_hash = Argon2::new(
+            Algorithm::Argon2id,
+            Version::V0x13,
+            Params::new(15000, 2, 1, None).unwrap(),
+        )
+        .hash_password(self.password.as_bytes(), &salt)
+        .unwrap()
+        .to_string();
 
         // because sqlite doesn't have uuid type
         let user_id = self.user_id.to_string();
