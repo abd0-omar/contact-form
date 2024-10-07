@@ -5,3 +5,7 @@ tailwind.config.js # optional
 # configuration.yaml
 configuration/production.yaml
 newsletter.db
+bacon.toml
+newsletter.db-shm
+newsletter.db-wal
+.gitignore
