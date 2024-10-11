@@ -10,6 +10,8 @@ use uuid::Uuid;
 
 use crate::startup::AppState;
 
+use super::error_chain_fmt;
+
 #[derive(serde::Deserialize)]
 pub struct Parameters {
     #[allow(dead_code)]
@@ -30,26 +32,19 @@ impl std::fmt::Debug for ConfirmationError {
     }
 }
 
-fn error_chain_fmt(
-    e: &impl std::error::Error,
-    f: &mut std::fmt::Formatter<'_>,
-) -> std::fmt::Result {
-    writeln!(f, "{}\n", e)?;
-    let mut current = e.source();
-    while let Some(cause) = current {
-        writeln!(f, "Caused by:\n\t{}", cause)?;
-        current = cause.source();
-    }
-    Ok(())
-}
-
 // steps for implementing error
 // IntoResponse status code, Dispaly, Debug error chain, error for source
 impl IntoResponse for ConfirmationError {
     fn into_response(self) -> askama_axum::Response {
         match self {
-            ConfirmationError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            ConfirmationError::UnknownToken => StatusCode::UNAUTHORIZED,
+            ConfirmationError::UnexpectedError(e) => {
+                tracing::error!(error_chain = ?e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+            ConfirmationError::UnknownToken => {
+                tracing::error!("There is no subscriber associated with the provided token.",);
+                StatusCode::UNAUTHORIZED
+            }
         }
         .into_response()
     }
