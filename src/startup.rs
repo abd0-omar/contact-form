@@ -11,6 +11,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use secrecy::Secret;
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
 use tower_http::trace::TraceLayer;
@@ -48,6 +49,7 @@ impl Application {
             pool,
             email_client,
             configuration.application.base_url,
+            configuration.application.hmac_secret,
         )?;
 
         Ok(Self { port, server })
@@ -62,11 +64,15 @@ impl Application {
     }
 }
 
+#[derive(Clone)]
+pub struct HmacSecret(pub Secret<String>);
+
 pub fn run(
     listener: std::net::TcpListener,
     pool: SqlitePool,
     email_client: EmailClient,
     base_url: String,
+    hmac_secret: Secret<String>,
 ) -> Result<Serve<Router, Router>, std::io::Error> {
     let email_client = Arc::new(email_client);
     let base_url = Arc::new(base_url);
@@ -74,6 +80,7 @@ pub fn run(
         pool,
         email_client,
         base_url,
+        secret: HmacSecret(hmac_secret),
     };
 
     let app = Router::new()
@@ -122,6 +129,7 @@ pub struct AppState {
     pub pool: SqlitePool,
     pub email_client: Arc<EmailClient>,
     pub base_url: Arc<String>,
+    pub secret: HmacSecret,
 }
 
 // we made this function so that build_router_and_listener could work on tests/helpers/spawn_app() fn with no problems
