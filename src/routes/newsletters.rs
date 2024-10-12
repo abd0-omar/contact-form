@@ -112,9 +112,9 @@ pub enum PublishError {
 
 impl IntoResponse for PublishError {
     fn into_response(self) -> askama_axum::Response {
-        match self {
-            PublishError::UnexpectedError(e) => {
-                tracing::error!(error_chain = ?e);
+        match &self {
+            PublishError::UnexpectedError(_e) => {
+                tracing::error!(error_chain = ?self);
                 StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
             PublishError::AuthError(e) => {
