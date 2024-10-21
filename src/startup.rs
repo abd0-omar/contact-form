@@ -64,6 +64,9 @@ impl Application {
     }
 }
 
+use axum_messages::MessagesManagerLayer;
+use tower_sessions::{MemoryStore, SessionManagerLayer};
+
 #[derive(Clone)]
 pub struct HmacSecret(pub Secret<String>);
 
@@ -74,6 +77,12 @@ pub fn run(
     base_url: String,
     hmac_secret: Secret<String>,
 ) -> Result<Serve<Router, Router>, std::io::Error> {
+    // `session_store` and `session_layer` are used for flash messages
+    let session_store = MemoryStore::default();
+    // it could be put on the state using axum flash crate, but it's not maintained-ish
+    // so we'll use the layering technique using axum messages along with tower sessions
+    let session_layer = SessionManagerLayer::new(session_store);
+
     let email_client = Arc::new(email_client);
     let base_url = Arc::new(base_url);
     let app_state = AppState {
@@ -115,6 +124,18 @@ pub fn run(
                 std::env::current_dir()?.to_str().unwrap()
             )),
         )
+        .layer(MessagesManagerLayer)
+        // `actix_session` needs a key which will be used for signing the session cookies
+        // https://docs.rs/actix-session/latest/actix_session/struct.SessionMiddleware.html#method.new
+        // this is not the case for `tower_sessions` see https://github.com/maxcountryman/tower-sessions/discussions/100
+        // > tower-sessions doesn't provide signing because no data is stored in the cookie.
+        // > In other words, the cookie value is a pointer to the data stored server side.
+        //
+        // so no need for hmac like the actix-web example
+        // let message_store = CookieMessageStore::builder(
+        // Key::from(hmac_secret.expose_secret().as_bytes())
+        // ).build();
+        .layer(session_layer)
         .with_state(app_state);
 
     listener.set_nonblocking(true)?;

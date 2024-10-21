@@ -1,6 +1,6 @@
 use askama_axum::IntoResponse;
 use axum::{extract::State, response::Redirect, Form};
-use axum_extra::extract::{cookie::Cookie, CookieJar};
+use axum_messages::Messages;
 use secrecy::Secret;
 
 use crate::{
@@ -18,9 +18,9 @@ pub struct FormFields {
 #[derive(thiserror::Error)]
 pub enum LoginError {
     #[error("Authentication failed.")]
-    AuthError(#[source] anyhow::Error),
+    AuthError(#[source] anyhow::Error, Messages),
     #[error("Something went wrong, my favourite error message")]
-    UnexpectedError(anyhow::Error),
+    UnexpectedError(anyhow::Error, Messages),
 }
 
 impl std::fmt::Debug for LoginError {
@@ -32,43 +32,29 @@ impl std::fmt::Debug for LoginError {
 impl IntoResponse for LoginError {
     fn into_response(self) -> askama_axum::Response {
         match &self {
-            LoginError::AuthError(_e) => {
+            // remove cookies and utilize flash messages
+            LoginError::AuthError(_e, flash) => {
+                // I think it'll send an error that way
+                let _flash = flash.clone().error(self.to_string());
                 tracing::error!(error_chain = ?self);
-                // more manual way of doing it
-                // headers.insert(axum::http::header::SET_COOKIE, format!("_flash={}", self).parse().unwrap());
-
-                // simpler manual way to add cookies to headers
-                // let mut headers = HeaderMap::new();
-                // let cookie = cookie::Cookie::new("_flash", self.to_string());
-                // headers.insert(
-                //     axum::http::header::SET_COOKIE,
-                //     cookie.to_string().parse().unwrap(),
-                // );
-
-                let jar = CookieJar::new().add(Cookie::new("_flash", self.to_string()));
-                // CookieJar add fn docs
-                // pub fn add<C: Into<Cookie<'static>>>(self, cookie: C) -> Self
-                // Add a cookie to the jar.
-                //
-                // The value will automatically be percent-encoded
-                // // that's why we later decode it in the tests
-                (jar, Redirect::to("/login")).into_response()
+                Redirect::to("/login").into_response()
             }
-            LoginError::UnexpectedError(_e) => {
+            LoginError::UnexpectedError(_e, flash) => {
+                let _flash = flash.clone().error(self.to_string());
                 tracing::error!(error_chain = ?self);
-                let jar = CookieJar::new().add(Cookie::new("_flash", self.to_string()));
-                (jar, Redirect::to("/login")).into_response()
+                Redirect::to("/login").into_response()
             }
         }
     }
 }
 
 #[tracing::instrument(
-    skip(app_state, form_fields),
+    skip(app_state, form_fields, flash),
     fields(username=tracing::field::Empty, user_id=tracing::field::Empty)
 )]
 pub async fn login(
     State(app_state): State<AppState>,
+    flash: Messages,
     Form(form_fields): Form<FormFields>,
 ) -> Result<impl IntoResponse, LoginError> {
     let credentials = Credentials {
@@ -80,8 +66,8 @@ pub async fn login(
     let user_id = validate_credentials(credentials, &app_state.pool)
         .await
         .map_err(|e| match e {
-            AuthError::InvalidCredentials(e) => LoginError::AuthError(e.into()),
-            AuthError::UnexpectedError(e) => LoginError::UnexpectedError(e.into()),
+            AuthError::InvalidCredentials(e) => LoginError::AuthError(e.into(), flash),
+            AuthError::UnexpectedError(e) => LoginError::UnexpectedError(e.into(), flash),
         })?;
     tracing::Span::current().record("user_id", tracing::field::display(&user_id));
 
