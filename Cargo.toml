@@ -1,0 +1,26 @@
+[package]
+name = "zero2prod_rewrite"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+axum = "0.8.1"
+tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
+anyhow = "1.0.97"
+reqwest = "0.12.12"
+serde = { version = "1.0.218", features = ["derive"] }
+thiserror = "2.0.12"
+config = "0.15.9"
+sqlx = { version = "0.8.3", default-features = false, features = [
+    "runtime-tokio-rustls",
+    "macros",
+    "sqlite",
+    # we don't need uuid feature in sqlx because sqlite doesn't support uuids
+    #    "uuid",
+    "chrono",
+    "migrate",
+] }
+uuid = { version = "1.15.1", features = ["v4"] }
