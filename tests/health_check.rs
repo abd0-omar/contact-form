@@ -1,12 +1,28 @@
+use std::sync::LazyLock;
+
+use newzletter::{
+    configuration::{configure_database, get_configuration},
+    startup::Application,
+    telemetry::{get_subscriber, init_subscriber},
+};
 use reqwest::{Client, StatusCode};
 use serde::Serialize;
 use sqlx::sqlite::SqlitePool;
 use tokio::fs::remove_file;
 use uuid::Uuid;
-use zero2prod_rewrite::{
-    configuration::{configure_database, get_configuration},
-    startup::Application,
-};
+
+// Ensure that the `tracing` stack is only initialised once using `once_cell`
+static TRACING: LazyLock<()> = LazyLock::new(|| {
+    let default_filter_level = "info".to_string();
+    let subscriber_name = "test".to_string();
+    if std::env::var("TEST_LOG").is_ok() {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
+        init_subscriber(subscriber);
+    } else {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::sink);
+        init_subscriber(subscriber);
+    };
+});
 
 pub struct TestApp {
     address: String,
@@ -16,6 +32,10 @@ pub struct TestApp {
 }
 
 async fn spawn_app() -> anyhow::Result<TestApp> {
+    // The first time `initialize` is invoked the code in `TRACING` is executed.
+    // All other invocations will instead skip execution.
+    LazyLock::force(&TRACING);
+
     let configuration = {
         let mut configuration = get_configuration().expect("Failed to read configuration");
         configuration.application_port = 0;

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n    SELECT name, email\n    FROM subscriptions\n    ",
+  "describe": {
+    "columns": [
+      {
+        "name": "name",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "email",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "2e81ba2495072fce7958c2aff05381d0c94da2c455715d5f943c5ec3f3a91395"
+}

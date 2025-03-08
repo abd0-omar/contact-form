@@ -1,10 +1,14 @@
 use axum::{
+    extract::Request,
     routing::{get, post},
     serve::Serve,
     Router,
 };
 use sqlx::SqlitePool;
 use tokio::net::TcpListener;
+use tower_http::trace::TraceLayer;
+use tracing::info_span;
+use uuid::Uuid;
 
 use crate::{
     configuration::{configure_database, Settings},
@@ -18,7 +22,19 @@ pub async fn run(
     let app = Router::new()
         .route("/health_check", get(health_check))
         .route("/subscribe", post(subscribe))
-        .with_state(pool);
+        .with_state(pool)
+        .layer(
+            TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
+                let request_id = Uuid::new_v4();
+                info_span!(
+                    "http_request",
+                    method = ?request.method(),
+                    uri = ?request.uri(),
+                    version = ?request.version(),
+                    request_id = ?request_id,
+                )
+            }),
+        );
 
     Ok(axum::serve(listener, app))
 }

@@ -1,6 +1,7 @@
 pub mod configuration;
 pub mod routes;
 pub mod startup;
+pub mod telemetry;
 
 /*
 // https://github.com/tokio-rs/axum/blob/main/examples/customize-extractor-error/src/with_rejection.rs
