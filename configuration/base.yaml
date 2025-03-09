@@ -1,0 +1,15 @@
+application:
+  port: 8080
+  host: 0.0.0.0
+database:
+  database_name: "newsletter"
+  create_if_missing: false
+  journal_mode: "WAL"
+  synchronous: "NORMAL"
+  busy_timeout: 5
+  foreign_keys: true
+  auto_vacuum: "INCREMENTAL"
+  page_size: 4096
+  cache_size: "-10000"
+  mmap_size: "536870912"
+  temp_store: "DEFAULT"

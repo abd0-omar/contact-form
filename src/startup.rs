@@ -1,5 +1,8 @@
+use std::time::Duration;
+
 use axum::{
     extract::Request,
+    response::Response,
     routing::{get, post},
     serve::Serve,
     Router,
@@ -7,7 +10,7 @@ use axum::{
 use sqlx::SqlitePool;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
-use tracing::info_span;
+use tracing::{info, info_span, Span};
 use uuid::Uuid;
 
 use crate::{
@@ -24,16 +27,23 @@ pub async fn run(
         .route("/subscribe", post(subscribe))
         .with_state(pool)
         .layer(
-            TraceLayer::new_for_http().make_span_with(|request: &Request<_>| {
-                let request_id = Uuid::new_v4();
-                info_span!(
-                    "http_request",
-                    method = ?request.method(),
-                    uri = ?request.uri(),
-                    version = ?request.version(),
-                    request_id = ?request_id,
-                )
-            }),
+            TraceLayer::new_for_http()
+                .make_span_with(|request: &Request<_>| {
+                    let request_id = Uuid::new_v4();
+                    info_span!(
+                        "http_request",
+                        method = ?request.method(),
+                        uri = ?request.uri(),
+                        version = ?request.version(),
+                        request_id = ?request_id,
+                    )
+                })
+                .on_response(|response: &Response, latency: Duration, span: &Span| {
+                    let status = response.status();
+                    let headers = response.headers();
+                    span.record("status", &status.as_u16());
+                    info!(parent: span, ?status, ?headers, ?latency, "Response sent");
+                }),
         );
 
     Ok(axum::serve(listener, app))
@@ -48,8 +58,11 @@ impl Application {
     // build is the one that invokes the `run()` function
     // then any fn invokes `run_until_stopped`
     pub async fn build(configuration: &Settings) -> anyhow::Result<Self> {
-        let listener =
-            TcpListener::bind(format!("127.0.0.1:{}", configuration.application_port)).await?;
+        let listener = TcpListener::bind(format!(
+            "{}:{}",
+            configuration.application.host, configuration.application.port
+        ))
+        .await?;
         let port = listener.local_addr()?.port();
 
         let pool = configure_database(&configuration.database).await?;

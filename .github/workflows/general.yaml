@@ -13,6 +13,7 @@ env:
   CARGO_TERM_COLOR: always
   SQLX_VERSION: 0.8.2
   SQLX_FEATURES: "rustls,sqlite"
+  SQLX_OFFLINE: true
 
 jobs:
   test:
@@ -32,12 +33,6 @@ jobs:
           --features ${{ env.SQLX_FEATURES }}
           --no-default-features
           --locked
-
-      - name: Create database
-        run: sqlx database create
-
-      - name: Migrate database
-        run: sqlx migrate run
 
       - name: Run tests
         run: cargo test

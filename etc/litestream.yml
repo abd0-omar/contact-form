@@ -1,0 +1,4 @@
+dbs:
+  - path: /app/data/newsletter.db
+    replicas:
+      - url: ${REPLICA_URL}

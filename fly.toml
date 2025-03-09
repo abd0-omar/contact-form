@@ -1,0 +1,36 @@
+# fly.toml app configuration file generated for newzletter on 2025-03-14T02:00:19+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+# fly waives your usage fees if it's less than $5
+# وانا شغال براست وsqlite
+# يعني هجيب اقل يعني هجيب اقل
+
+app = 'newzletter'
+# cheapest region I could find
+primary_region = 'ewr'
+
+[build]
+
+# 1DB mount, but we're using litestream so we don't need it
+[[mounts]]
+source = 'data'
+destination = '/app/data'
+# even after commenting out the mounts, the app still give 1GB of storage
+# maybe because of docker mounted volume
+
+[http_service]
+internal_port = 8080
+force_https = true
+auto_stop_machines = 'stop'
+auto_start_machines = true
+min_machines_running = 0
+processes = ['app']
+
+# overkill I know
+# بس ماشي خلي الغلابة تاكل
+[[vm]]
+memory = '512mb'
+cpu_kind = 'shared'
+cpus = 1

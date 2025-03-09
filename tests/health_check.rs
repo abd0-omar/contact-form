@@ -38,16 +38,32 @@ async fn spawn_app() -> anyhow::Result<TestApp> {
 
     let configuration = {
         let mut configuration = get_configuration().expect("Failed to read configuration");
-        configuration.application_port = 0;
+        configuration.application.port = 0;
         configuration.database.database_name = Uuid::new_v4().to_string();
+        configuration.database.create_if_missing = true;
+        configuration.database.journal_mode = "MEMORY".to_string();
+        configuration.database.synchronous = "OFF".to_string();
+        configuration.database.busy_timeout = 1;
+        configuration.database.foreign_keys = true;
+        configuration.database.auto_vacuum = "NONE".to_string();
+        configuration.database.page_size = 4096;
+        configuration.database.cache_size = "-10000".to_string();
+        configuration.database.mmap_size = "0".to_string();
+        configuration.database.temp_store = "MEMORY".to_string();
         configuration
     };
 
     let pool = configure_database(&configuration.database).await?;
 
+    sqlx::migrate!("./migrations").run(&pool).await?;
+
     let application = Application::build(&configuration).await?;
 
-    let address = format!("http://127.0.0.1:{}", application.port());
+    let address = format!(
+        "http://{}:{}",
+        configuration.application.host,
+        application.port()
+    );
 
     tokio::spawn(async move { application.run_until_stopped().await.unwrap() });
     Ok(TestApp {
@@ -82,6 +98,7 @@ pub async fn health_check_works() {
     // Assert
     assert!(response.status().is_success());
     assert_eq!(response.content_length(), Some(0));
+    dbg!(&db_name);
 
     cleanup_test_db(&db_name).await.unwrap();
 }
@@ -91,6 +108,7 @@ struct FormData {
     name: Option<String>,
     email: Option<String>,
 }
+
 #[tokio::test]
 pub async fn subscribe_returns_a_200_for_valid_form_data() {
     // Arrange
