@@ -1,4 +1,4 @@
-use std::sync::LazyLock;
+use std::{fs, sync::LazyLock};
 
 use newzletter::{
     configuration::{configure_database, get_configuration},
@@ -36,10 +36,12 @@ async fn spawn_app() -> anyhow::Result<TestApp> {
     // All other invocations will instead skip execution.
     LazyLock::force(&TRACING);
 
+    fs::create_dir_all("scripts/a_place_for_test_dbs_to_spawn_in_it,supposed_to_be_empty_cuz_tests_terminate_after_success_execution/")?;
+
     let configuration = {
         let mut configuration = get_configuration().expect("Failed to read configuration");
         configuration.application.port = 0;
-        configuration.database.database_name = Uuid::new_v4().to_string();
+        configuration.database.database_name = format!("scripts/a_place_for_test_dbs_to_spawn_in_it,supposed_to_be_empty_cuz_tests_terminate_after_success_execution/{}", Uuid::new_v4().to_string());
         configuration.database.create_if_missing = true;
         configuration.database.journal_mode = "MEMORY".to_string();
         configuration.database.synchronous = "OFF".to_string();
@@ -120,12 +122,12 @@ pub async fn subscribe_returns_a_200_for_valid_form_data() {
     let client = Client::new();
     let fake_user_form_data = FormData {
         name: Some("abood".to_string()),
-        email: Some("3la el 7doood".to_string()),
+        email: Some("3la_el_7doood@yahoo.com".to_string()),
     };
 
     // Act
     let response = client
-        .post(format!("{}/subscribe", address))
+        .post(format!("{}/subscriptions", address))
         .form(&fake_user_form_data)
         .send()
         .await
@@ -184,7 +186,7 @@ pub async fn subscribe_returns_a_422_when_data_is_missing() {
     // Act
     for (invalid_form, error_message) in test_cases {
         let response = client
-            .post(format!("{}/subscribe", address))
+            .post(format!("{}/subscriptions", address))
             .form(&invalid_form)
             .send()
             .await
@@ -199,4 +201,54 @@ pub async fn subscribe_returns_a_422_when_data_is_missing() {
     }
 
     cleanup_test_db(&db_name).await.unwrap();
+}
+
+#[tokio::test]
+async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
+    // Arrange
+    let app = spawn_app().await.unwrap();
+    let client = reqwest::Client::new();
+    let test_cases = [
+        (
+            FormData {
+                name: Some("".to_string()),
+                email: Some("hamada123@yahoo.com".to_string()),
+            },
+            "name present (gift) but empty",
+        ),
+        (
+            FormData {
+                name: Some("hamada".to_string()),
+                email: Some("".to_string()),
+            },
+            "empty email",
+        ),
+        (
+            FormData {
+                name: Some("hamada".to_string()),
+                email: Some("definitely-not-(blitzcrank)-an-email".to_string()),
+            },
+            "invalid email",
+        ),
+    ];
+
+    for (body, description) in test_cases {
+        // Act
+        let response = client
+            .post(&format!("{}/subscriptions", &app.address))
+            .form(&body)
+            .send()
+            .await
+            .expect("Failed to execute request.");
+
+        // Assert
+        assert_eq!(
+            StatusCode::BAD_REQUEST,
+            response.status(),
+            "The API did not return a 200 OK when the payload was {}.",
+            description
+        );
+    }
+
+    cleanup_test_db(&app.db_name).await.unwrap();
 }

@@ -24,7 +24,7 @@ pub async fn run(
 ) -> anyhow::Result<Serve<TcpListener, Router, Router>> {
     let app = Router::new()
         .route("/health_check", get(health_check))
-        .route("/subscribe", post(subscribe))
+        .route("/subscriptions", post(subscribe))
         .with_state(pool)
         .layer(
             TraceLayer::new_for_http()
