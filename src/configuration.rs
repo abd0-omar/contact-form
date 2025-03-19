@@ -1,6 +1,7 @@
 use std::{str::FromStr, time::Duration};
 
 use config::{Config, ConfigError};
+use secrecy::SecretString;
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::{
@@ -8,13 +9,34 @@ use sqlx::{
     SqlitePool,
 };
 
-#[derive(Deserialize)]
+use crate::domain::SubscriberEmail;
+
+#[derive(Deserialize, Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
+    pub email_client: EmailClientSettings,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
+pub struct EmailClientSettings {
+    sender_email: String,
+    pub base_url: String,
+    pub authorization_token: SecretString,
+    pub timeout_milliseconds: u64,
+}
+
+impl EmailClientSettings {
+    pub fn sender(&self) -> Result<SubscriberEmail, String> {
+        Ok(SubscriberEmail::parse(self.sender_email.clone())?)
+    }
+
+    pub fn timeout(&self) -> std::time::Duration {
+        std::time::Duration::from_millis(self.timeout_milliseconds)
+    }
+}
+
+#[derive(Deserialize, Clone)]
 pub struct ApplicationSettings {
     // env vars are strings for the config crate, and it will fail to pick up
     // integers using standard deserialization routine from serde
@@ -24,9 +46,9 @@ pub struct ApplicationSettings {
     pub host: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct DatabaseSettings {
-    pub database_name: String,
+    pub database_path: String,
     pub create_if_missing: bool,
     pub journal_mode: String,
     pub synchronous: String,
@@ -53,7 +75,7 @@ pub async fn configure_database(config: &DatabaseSettings) -> anyhow::Result<Sql
 impl DatabaseSettings {
     pub fn connect_options(&self) -> anyhow::Result<SqliteConnectOptions> {
         let options =
-            SqliteConnectOptions::from_str(&format!("sqlite://{}.db", self.database_name))?
+            SqliteConnectOptions::from_str(&format!("sqlite://{}.db", self.database_path))?
                 // maybe do create_if_missing false for prod
                 // and for testing true
                 // beacuse litestream will pull the db if it doesn't exist from s3

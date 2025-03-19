@@ -1,16 +1,21 @@
 {
   "db_name": "SQLite",
-  "query": "\n    SELECT name, email\n    FROM subscriptions\n    ",
+  "query": "SELECT email, name, status FROM subscriptions",
   "describe": {
     "columns": [
       {
-        "name": "name",
+        "name": "email",
         "ordinal": 0,
         "type_info": "Text"
       },
       {
-        "name": "email",
+        "name": "name",
         "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "status",
+        "ordinal": 2,
         "type_info": "Text"
       }
     ],
@@ -19,8 +24,9 @@
     },
     "nullable": [
       false,
+      false,
       false
     ]
   },
-  "hash": "2e81ba2495072fce7958c2aff05381d0c94da2c455715d5f943c5ec3f3a91395"
+  "hash": "9ab6536d2bf619381573b3bf13507d53b2e9cf50051e51c803e916f25b51abd2"
 }

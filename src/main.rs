@@ -13,8 +13,6 @@ async fn main() -> anyhow::Result<()> {
     init_subscriber(subscriber);
 
     let configuration = get_configuration()?;
-
-    let application = Application::build(&configuration).await?;
-
+    let application = Application::build(configuration).await?;
     Ok(application.run_until_stopped().await?)
 }

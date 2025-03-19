@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{extract::State, response::IntoResponse, Form};
 use chrono::Utc;
 use reqwest::StatusCode;
@@ -5,7 +7,10 @@ use serde::Deserialize;
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
-use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::{
+    domain::{NewSubscriber, SubscriberEmail, SubscriberName},
+    startup::AppState,
+};
 
 #[derive(Deserialize)]
 pub struct FormData {
@@ -25,19 +30,19 @@ impl TryFrom<FormData> for NewSubscriber {
 
 #[tracing::instrument(
     name = "Adding a new subscriber",
-    skip(form, pool),
+    skip(form, app_state),
     fields(
         subscriber_name = %form.name,
         subscriber_email = %form.email
     )
 )]
 pub async fn subscribe(
-    State(pool): State<SqlitePool>,
+    State(app_state): State<Arc<AppState>>,
     Form(form): Form<FormData>,
 ) -> Result<impl IntoResponse, SubscribeError> {
     // same as `NewSubscriber::try_from()`.
     let new_subscriber = form.try_into().map_err(SubscribeError::InvalidSubscriber)?;
-    insert_subscriber(&pool, &new_subscriber).await?;
+    insert_subscriber(&app_state.pool, &new_subscriber).await?;
 
     Ok(StatusCode::OK)
 }
@@ -80,7 +85,7 @@ pub async fn insert_subscriber(
     let email = new_subscriber.email.as_ref();
     sqlx::query!(
         r#"
-            INSERT INTO subscriptions(id, name, email, subscribed_at) VALUES($1, $2, $3, $4)
+            INSERT INTO subscriptions(id, name, email, subscribed_at, status) VALUES($1, $2, $3, $4, 'confirmed')
             "#,
         id,
         name,

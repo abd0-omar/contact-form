@@ -2,7 +2,7 @@ application:
   port: 8080
   host: 0.0.0.0
 database:
-  database_name: "newsletter"
+  database_path: "newsletter"
   create_if_missing: false
   journal_mode: "WAL"
   synchronous: "NORMAL"
@@ -13,3 +13,8 @@ database:
   cache_size: "-10000"
   mmap_size: "536870912"
   temp_store: "DEFAULT"
+email_client:
+  sender_email: "test@gmail.com"
+  base_url: "localhost"
+  authorization_token: "my-secret-token"
+  timeout_milliseconds: 10000

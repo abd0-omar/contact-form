@@ -13,7 +13,7 @@ primary_region = 'ewr'
 
 [build]
 
-# 1DB mount, but we're using litestream so we don't need it
+# 1GB mount, but we're using litestream so we don't need it
 [[mounts]]
 source = 'data'
 destination = '/app/data'

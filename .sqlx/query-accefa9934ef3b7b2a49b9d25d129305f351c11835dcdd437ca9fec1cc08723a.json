@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "ALTER TABLE subscriptions RENAME TO broken_subscriptions;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "accefa9934ef3b7b2a49b9d25d129305f351c11835dcdd437ca9fec1cc08723a"
+}
