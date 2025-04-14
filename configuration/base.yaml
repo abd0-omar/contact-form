@@ -11,10 +11,10 @@ database:
   auto_vacuum: "INCREMENTAL"
   page_size: 4096
   cache_size: "-10000"
-  mmap_size: "536870912"
+  mmap_size: "268435456"
   temp_store: "DEFAULT"
 email_client:
   sender_email: "test@gmail.com"
-  base_url: "localhost"
+  base_url: "http://127.0.0.1"
   authorization_token: "my-secret-token"
   timeout_milliseconds: 10000

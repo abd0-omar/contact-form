@@ -19,24 +19,6 @@ pub struct Settings {
 }
 
 #[derive(Deserialize, Clone)]
-pub struct EmailClientSettings {
-    sender_email: String,
-    pub base_url: String,
-    pub authorization_token: SecretString,
-    pub timeout_milliseconds: u64,
-}
-
-impl EmailClientSettings {
-    pub fn sender(&self) -> Result<SubscriberEmail, String> {
-        Ok(SubscriberEmail::parse(self.sender_email.clone())?)
-    }
-
-    pub fn timeout(&self) -> std::time::Duration {
-        std::time::Duration::from_millis(self.timeout_milliseconds)
-    }
-}
-
-#[derive(Deserialize, Clone)]
 pub struct ApplicationSettings {
     // env vars are strings for the config crate, and it will fail to pick up
     // integers using standard deserialization routine from serde
@@ -44,6 +26,7 @@ pub struct ApplicationSettings {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub host: String,
+    pub base_url: String,
 }
 
 #[derive(Deserialize, Clone)]
@@ -99,6 +82,24 @@ impl DatabaseSettings {
                 .pragma("temp_store", self.temp_store.to_owned());
 
         Ok(options)
+    }
+}
+
+#[derive(Deserialize, Clone)]
+pub struct EmailClientSettings {
+    pub base_url: String,
+    pub sender_email: String,
+    pub authorization_token: SecretString,
+    pub timeout_milliseconds: u64,
+}
+
+impl EmailClientSettings {
+    pub fn sender(&self) -> Result<SubscriberEmail, String> {
+        Ok(SubscriberEmail::parse(self.sender_email.clone())?)
+    }
+
+    pub fn timeout(&self) -> std::time::Duration {
+        std::time::Duration::from_millis(self.timeout_milliseconds)
     }
 }
 

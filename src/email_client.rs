@@ -36,15 +36,17 @@ impl EmailClient {
         }
     }
 
-    async fn send_email(
+    pub async fn send_email(
         &self,
         recipient: SubscriberEmail,
         subject: &str,
         html_content: &str,
         text_content: &str,
-    ) -> anyhow::Result<()> {
-        let base = Url::parse(&self.base_url)?;
-        let url = base.join("email")?;
+    ) -> Result<(), reqwest::Error> {
+        let base = Url::parse(&self.base_url).expect("url from config is wrong");
+        let url = base
+            .join("email")
+            .expect("can't append email to email url from config");
         let request_body = SendEmailRequest {
             from: self.sender.as_ref(),
             to: recipient.as_ref(),
@@ -52,8 +54,7 @@ impl EmailClient {
             html_body: text_content,
             text_body: html_content,
         };
-        let builder = self
-            .http_client
+        self.http_client
             .post(url)
             .header(
                 "X-Postmark-Server-Token",
@@ -135,8 +136,6 @@ mod tests {
     async fn send_email_fires_a_request_to_base_url() {
         // Arrange
         let mock_server = MockServer::start().await;
-
-        let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
         let email_client = email_client(mock_server.uri());
 
         Mock::given(header_exists("X-Postmark-Server-Token"))
@@ -149,7 +148,7 @@ mod tests {
             .mount(&mock_server)
             .await;
         // Act
-        let response = email_client
+        let _ = email_client
             .send_email(email(), &subject(), &content(), &content())
             .await;
         // Assert

@@ -16,29 +16,37 @@ use uuid::Uuid;
 use crate::{
     configuration::{configure_database, Settings},
     email_client::EmailClient,
-    routes::{health_check::health_check, subscriptions::subscribe},
+    routes::{confirm, health_check::health_check, subscriptions::subscribe},
 };
 
 pub struct AppState {
     pub pool: SqlitePool,
     pub email_client: EmailClient,
+    pub base_url: ApplicationBaseUrl,
 }
+
+pub struct ApplicationBaseUrl(pub String);
 
 pub async fn run(
     listener: TcpListener,
     pool: SqlitePool,
     email_client: EmailClient,
+    base_url: String,
 ) -> anyhow::Result<Serve<TcpListener, Router, Router>> {
     // Wrapped in an Arc pointer to allow cheap cloning of AppState across handlers.
     // This prevents unnecessary cloning of EmailClient, which has two String fields,
     // since cloning an Arc is negligible.
-    let app_state = Arc::new(AppState { pool, email_client });
+    let app_state = Arc::new(AppState {
+        pool,
+        email_client,
+        base_url: ApplicationBaseUrl(base_url),
+    });
 
     let app = Router::new()
         .route("/", get(home_page))
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
-        .with_state(app_state)
+        .route("/subscriptions/confirm", get(confirm))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {
@@ -56,8 +64,12 @@ pub async fn run(
                     let headers = response.headers();
                     span.record("status", &status.as_u16());
                     info!(parent: span, ?status, ?headers, ?latency, "Response sent");
-                }),
-        );
+                })
+                // By default `TraceLayer` will log 5xx responses but we're doing our specific
+                // logging of errors so disable that
+                .on_failure(()),
+        )
+        .with_state(app_state);
 
     Ok(axum::serve(listener, app))
 }
@@ -93,7 +105,14 @@ impl Application {
             timeout,
         );
 
-        let server = run(listener, pool, email_client).await.unwrap();
+        let server = run(
+            listener,
+            pool,
+            email_client,
+            configuration.application.base_url,
+        )
+        .await
+        .unwrap();
 
         Ok(Self { server, port })
     }
