@@ -16,7 +16,7 @@ use uuid::Uuid;
 use crate::{
     configuration::{configure_database, Settings},
     email_client::EmailClient,
-    routes::{confirm, health_check::health_check, subscriptions::subscribe},
+    routes::{confirm, health_check::health_check, publish_newsletter, subscriptions::subscribe},
 };
 
 pub struct AppState {
@@ -47,6 +47,7 @@ pub async fn run(
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
         .route("/subscriptions/confirm", get(confirm))
+        .route("/newsletters", post(publish_newsletter))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {

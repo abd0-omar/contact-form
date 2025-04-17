@@ -50,12 +50,12 @@ impl IntoResponse for SubscribeError {
         match self {
             SubscribeError::ValidationError(e) => {
                 // add log
-                tracing::error!(exception_details = ?e);
+                tracing::error!(cause_chain = ?e);
                 StatusCode::BAD_REQUEST
             }
             SubscribeError::UnexpectedError(e) => {
                 // add log
-                tracing::error!(exception_details = ?e);
+                tracing::error!(cause_chain = ?e);
                 StatusCode::INTERNAL_SERVER_ERROR
             }
         }
@@ -135,7 +135,12 @@ pub async fn send_confirmation_email(
         confirmation_link
     );
     email_client
-        .send_email(new_subscriber.email, "Willkommen!", &html_body, &plain_body)
+        .send_email(
+            &new_subscriber.email,
+            "Willkommen!",
+            &html_body,
+            &plain_body,
+        )
         .await
 }
 
