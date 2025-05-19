@@ -44,6 +44,8 @@ RUN chmod +x /scripts/run.sh
 # Copy Litestream configuration file
 COPY etc/litestream.yml /etc/litestream.yml
 
+# there is no production configuration though
+# but keep it here for future use
 ENV APP_ENVIRONMENT=production
 # db is in docker's volume /app/data
 ENV DATABASE_URL=sqlite:///app/data/newsletter.db
