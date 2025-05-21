@@ -1,0 +1,101 @@
+---
+import Layout from "../layouts/Layout.astro";
+import "@/styles/starwind.css";
+import { Button } from "@/components/starwind/button";
+import { Card } from "@/components/starwind/card";
+---
+
+<Layout>
+	<!-- Hero Section -->
+	<section class="py-20 text-center">
+		<div class="max-w-3xl mx-auto px-4">
+			<h1 class="text-4xl md:text-5xl font-bold text-[#b0b0b0] mb-6">
+				Stay Informed with Newzletter
+			</h1>
+			<p class="text-[#a0a0a0] text-lg mb-8">
+				Get curated news and updates delivered straight to your inbox.
+				Stay ahead with our carefully selected content.
+			</p>
+			<div class="flex flex-col sm:flex-row gap-4 justify-center">
+				<a href="/subscriptions">
+					<Button
+						class="bg-[#000000] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#c0c0c0] hover:text-[#000000] transition-colors px-8 py-3"
+					>
+						Subscribe Now
+					</Button>
+				</a>
+				<a href="/about">
+					<Button
+						class="bg-[#0a0a0a] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors px-8 py-3"
+					>
+						Learn More
+					</Button>
+				</a>
+			</div>
+		</div>
+	</section>
+
+	<!-- Features Section -->
+	<section class="py-16 bg-[#0a0a0a] border-y border-[#1a1a1a]">
+		<div class="container mx-auto px-4">
+			<h2 class="text-3xl font-bold text-[#b0b0b0] text-center mb-12">
+				Why Choose Newzletter?
+			</h2>
+			<div class="grid md:grid-cols-3 gap-8">
+				<Card class="bg-[#000000] border-[#1a1a1a] p-6">
+					<div class="text-center">
+						<h3 class="text-xl font-semibold text-[#b0b0b0] mb-3">
+							Curated Content
+						</h3>
+						<p class="text-[#a0a0a0]">
+							Get carefully selected news and updates that matter
+							to you, filtered from reliable sources.
+						</p>
+					</div>
+				</Card>
+				<Card class="bg-[#000000] border-[#1a1a1a] p-6">
+					<div class="text-center">
+						<h3 class="text-xl font-semibold text-[#b0b0b0] mb-3">
+							Daily Updates
+						</h3>
+						<p class="text-[#a0a0a0]">
+							Stay informed with daily newsletters delivered to
+							your inbox at your preferred time.
+						</p>
+					</div>
+				</Card>
+				<Card class="bg-[#000000] border-[#1a1a1a] p-6">
+					<div class="text-center">
+						<h3 class="text-xl font-semibold text-[#b0b0b0] mb-3">
+							Customizable
+						</h3>
+						<p class="text-[#a0a0a0]">
+							Choose your topics of interest and customize your
+							newsletter experience.
+						</p>
+					</div>
+				</Card>
+			</div>
+		</div>
+	</section>
+
+	<!-- CTA Section -->
+	<section class="py-20">
+		<div class="max-w-3xl mx-auto px-4 text-center">
+			<h2 class="text-3xl font-bold text-[#b0b0b0] mb-6">
+				Ready to Stay Informed?
+			</h2>
+			<p class="text-[#a0a0a0] text-lg mb-8">
+				Join thousands of readers who trust Newzletter for their daily
+				dose of curated news and updates.
+			</p>
+			<a href="/subscriptions">
+				<Button
+					class="bg-[#000000] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#c0c0c0] hover:text-[#000000] transition-colors px-8 py-3"
+				>
+					Get Started
+				</Button>
+			</a>
+		</div>
+	</section>
+</Layout>

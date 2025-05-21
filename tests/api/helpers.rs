@@ -1,5 +1,9 @@
 use std::{fs, sync::LazyLock};
 
+use argon2::{
+    password_hash::{rand_core, PasswordHasher, SaltString},
+    Algorithm, Argon2, Params, Version,
+};
 use newzletter::{
     configuration::{configure_database, get_configuration},
     startup::Application,
@@ -30,6 +34,7 @@ pub struct TestApp {
     pub email_server: MockServer,
     // to later delete it
     pub db_path: String,
+    pub test_user: TestUser,
 }
 
 #[derive(Serialize)]
@@ -56,6 +61,7 @@ impl TestApp {
     pub async fn post_newsletters(&self, body: serde_json::Value) -> reqwest::Response {
         reqwest::Client::new()
             .post(&format!("{}/newsletters", &self.address))
+            .basic_auth(&self.test_user.username, Some(&self.test_user.password))
             .json(&body)
             .send()
             .await
@@ -130,11 +136,59 @@ pub async fn spawn_app() -> anyhow::Result<TestApp> {
     let address = format!("http://{}:{}", application_host, application.port());
 
     tokio::spawn(async move { application.run_until_stopped().await.unwrap() });
-    Ok(TestApp {
+    let test_app = TestApp {
         address,
         port: application_port,
-        db_pool,
+        db_pool: db_pool.clone(),
         db_path,
         email_server,
-    })
+        test_user: TestUser::generate(),
+    };
+    test_app.test_user.store(&db_pool).await;
+
+    Ok(test_app)
+}
+
+pub struct TestUser {
+    pub uuid: Uuid,
+    pub username: String,
+    pub password: String,
+}
+
+impl TestUser {
+    pub fn generate() -> Self {
+        Self {
+            uuid: Uuid::new_v4(),
+            username: Uuid::new_v4().to_string(),
+            password: Uuid::new_v4().to_string(),
+        }
+    }
+
+    async fn store(&self, pool: &SqlitePool) {
+        let salt = SaltString::generate(&mut rand_core::OsRng);
+
+        let password_hash = Argon2::new(
+            Algorithm::Argon2id,
+            Version::V0x13,
+            Params::new(15000, 2, 1, None).unwrap(),
+        )
+        .hash_password(self.password.as_bytes(), &salt)
+        .unwrap()
+        .to_string();
+
+        let uuid = self.uuid.to_string();
+        let username = self.username.to_string();
+        let hashed_password = password_hash;
+
+        sqlx::query!(
+            "INSERT INTO users (uuid, username, password_hash)
+            VALUES ($1, $2, $3)",
+            uuid,
+            username,
+            hashed_password,
+        )
+        .execute(pool)
+        .await
+        .expect("Failed to store test user.");
+    }
 }

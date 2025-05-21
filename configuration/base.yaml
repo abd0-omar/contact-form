@@ -1,6 +1,7 @@
 application:
   port: 8080
   host: 0.0.0.0
+  hmac_secret: "super-long-and-secret-random-key-needed-to-verify-message-integrity"
 database:
   database_path: "newsletter"
   create_if_missing: false

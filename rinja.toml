@@ -1,0 +1,13 @@
+[general]
+dirs = ["frontend/dist/"]
+default_syntax = "astro"
+
+[[syntax]]
+name = "astro"
+# to avoid conflicts with astro's syntax
+expr_start = "[[."
+expr_end = "]]"
+comment_start = "%[[#"
+comment_end = "#]]"
+block_start = "%%"
+block_end = "%%"

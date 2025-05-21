@@ -1,28 +1,40 @@
 use std::{sync::Arc, time::Duration};
 
 use axum::{
-    extract::Request,
+    extract::{FromRef, Request},
     response::Response,
     routing::{get, post},
     serve::Serve,
     Router,
 };
+use secrecy::SecretString;
 use sqlx::SqlitePool;
 use tokio::net::TcpListener;
-use tower_http::trace::TraceLayer;
+use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing::{info, info_span, Span};
 use uuid::Uuid;
 
 use crate::{
     configuration::{configure_database, Settings},
     email_client::EmailClient,
-    routes::{confirm, health_check::health_check, publish_newsletter, subscriptions::subscribe},
+    routes::{
+        confirm, health_check::health_check, home::home, login, login_form, publish_newsletter,
+        subscribe_form, subscriptions::subscribe,
+    },
 };
 
 pub struct AppState {
     pub pool: SqlitePool,
     pub email_client: EmailClient,
     pub base_url: ApplicationBaseUrl,
+    pub hmac_secret: HmacSecret,
+}
+
+// substate
+impl FromRef<Arc<AppState>> for HmacSecret {
+    fn from_ref(input: &Arc<AppState>) -> Self {
+        input.hmac_secret.clone()
+    }
 }
 
 pub struct ApplicationBaseUrl(pub String);
@@ -32,6 +44,7 @@ pub async fn run(
     pool: SqlitePool,
     email_client: EmailClient,
     base_url: String,
+    hmac_secret: SecretString,
 ) -> anyhow::Result<Serve<TcpListener, Router, Router>> {
     // Wrapped in an Arc pointer to allow cheap cloning of AppState across handlers.
     // This prevents unnecessary cloning of EmailClient, which has two String fields,
@@ -40,14 +53,19 @@ pub async fn run(
         pool,
         email_client,
         base_url: ApplicationBaseUrl(base_url),
+        hmac_secret: HmacSecret(SecretString::from(hmac_secret)),
     });
 
     let app = Router::new()
-        .route("/", get(home_page))
+        .route("/", get(home))
+        .route("/login", get(login_form))
+        .route("/login", post(login))
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
+        .route("/subscriptions", get(subscribe_form))
         .route("/subscriptions/confirm", get(confirm))
         .route("/newsletters", post(publish_newsletter))
+        .fallback_service(ServeDir::new("frontend/dist"))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(|request: &Request<_>| {
@@ -74,6 +92,9 @@ pub async fn run(
 
     Ok(axum::serve(listener, app))
 }
+
+#[derive(Clone)]
+pub struct HmacSecret(pub SecretString);
 
 pub struct Application {
     port: u16,
@@ -111,6 +132,7 @@ impl Application {
             pool,
             email_client,
             configuration.application.base_url,
+            configuration.application.hmac_secret,
         )
         .await
         .unwrap();
@@ -125,8 +147,4 @@ impl Application {
     pub fn port(&self) -> u16 {
         self.port
     }
-}
-
-pub async fn home_page() -> impl axum::response::IntoResponse {
-    "under constructions\nمنطقة عمل"
 }

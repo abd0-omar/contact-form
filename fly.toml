@@ -13,12 +13,10 @@ primary_region = 'ewr'
 
 [build]
 
-# 1GB mount, but we're using litestream so we don't need it
+# 1GB mount
 [[mounts]]
 source = 'data'
 destination = '/app/data'
-# even after commenting out the mounts, the app still give 1GB of storage
-# maybe because of docker mounted volume
 
 [http_service]
 internal_port = 8080
@@ -26,6 +24,7 @@ force_https = true
 auto_stop_machines = 'stop'
 auto_start_machines = true
 min_machines_running = 0
+max_machines_running = 1
 processes = ['app']
 
 # overkill I know

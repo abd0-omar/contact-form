@@ -9,7 +9,7 @@ if [ -f "$DB_PATH" ]; then
 else
     echo "No database found, restoring from replica if exists"
     litestream restore -if-replica-exists -o "$DB_PATH" "${REPLICA_URL}"
-fi
+ fi
 
 # Run Litestream with your app as the subprocess.
 exec litestream replicate -exec "/app/newzletter"
