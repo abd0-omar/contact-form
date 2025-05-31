@@ -49,12 +49,10 @@ impl IntoResponse for SubscribeError {
     fn into_response(self) -> axum::response::Response {
         match self {
             SubscribeError::ValidationError(e) => {
-                // add log
                 tracing::error!(cause_chain = ?e);
                 StatusCode::BAD_REQUEST
             }
             SubscribeError::UnexpectedError(e) => {
-                // add log
                 tracing::error!(cause_chain = ?e);
                 StatusCode::INTERNAL_SERVER_ERROR
             }
@@ -143,36 +141,6 @@ pub async fn send_confirmation_email(
         )
         .await
 }
-
-// #[derive(thiserror::Error, Debug)]
-// pub enum SubscribeError {
-//     #[error("invalid subscriber, {0}")]
-//     InvalidSubscriber(String),
-//     #[error("couldn't insert new_subscriber to the database, sqlx error {0}")]
-//     SqlxError(#[from] sqlx::Error),
-//     #[error("couldn't send email to postmark")]
-//     SendEmailError(#[from] reqwest::Error),
-// }
-
-// impl IntoResponse for SubscribeError {
-//     fn into_response(self) -> axum::response::Response {
-//         match self {
-//             SubscribeError::SqlxError(e) => {
-//                 tracing::error!("sqlx error: {:?}", e);
-//                 StatusCode::INTERNAL_SERVER_ERROR
-//             }
-//             SubscribeError::InvalidSubscriber(e) => {
-//                 tracing::error!("Subscriber name or email error: {:?}", e);
-//                 StatusCode::BAD_REQUEST
-//             }
-//             SubscribeError::SendEmailError(e) => {
-//                 tracing::error!("reqwest sending to postmark error: {:?}", e);
-//                 StatusCode::INTERNAL_SERVER_ERROR
-//             }
-//         }
-//         .into_response()
-//     }
-// }
 
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",

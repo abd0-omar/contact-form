@@ -29,16 +29,13 @@ import { Button } from "@/components/starwind/button";
 							>Home</a
 						>
 						<a
-							href="/news"
-							class="text-[#a0a0a0] hover:text-[#b0b0b0]">News</a
-						>
-						<a
-							href="/about"
-							class="text-[#a0a0a0] hover:text-[#b0b0b0]">About</a
-						>
-						<a
 							href="/login"
 							class="text-[#a0a0a0] hover:text-[#b0b0b0]">Login</a
+						>
+						<a
+							href="/admin/dashboard"
+							class="text-[#a0a0a0] hover:text-[#b0b0b0]"
+							>Dashboard</a
 						>
 						<a href="/subscriptions">
 							<Button
@@ -51,7 +48,7 @@ import { Button } from "@/components/starwind/button";
 			</div>
 		</header>
 
-		<main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+		<main class="flex-grow bg-[#000000]">
 			<slot />
 		</main>
 
@@ -80,23 +77,16 @@ import { Button } from "@/components/starwind/button";
 							</li>
 							<li>
 								<a
-									href="/news"
-									class="text-[#a0a0a0] hover:text-[#b0b0b0]"
-									>News</a
-								>
-							</li>
-							<li>
-								<a
-									href="/about"
-									class="text-[#a0a0a0] hover:text-[#b0b0b0]"
-									>About</a
-								>
-							</li>
-							<li>
-								<a
 									href="/login"
 									class="text-[#a0a0a0] hover:text-[#b0b0b0]"
 									>Login</a
+								>
+							</li>
+							<li>
+								<a
+									href="/dashboard"
+									class="text-[#a0a0a0] hover:text-[#b0b0b0]"
+									>Dashboard</a
 								>
 							</li>
 						</ul>
@@ -106,7 +96,7 @@ import { Button } from "@/components/starwind/button";
 							Contact
 						</h3>
 						<p class="text-[#a0a0a0]">
-							Email: contact@newzletter.com
+							Email: newzletter@talga.ninja
 						</p>
 					</div>
 				</div>

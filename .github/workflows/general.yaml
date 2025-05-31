@@ -19,6 +19,11 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:8
+        ports:
+          - 6379:6379
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4

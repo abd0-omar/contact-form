@@ -1,12 +1,9 @@
+use crate::telemetry::spawn_blocking_with_tracing;
 use anyhow::Context;
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
-use axum::response::IntoResponse;
-use reqwest::StatusCode;
+use argon2::password_hash::{rand_core, SaltString};
+use argon2::{Algorithm, Argon2, Params, PasswordHash, PasswordHasher, PasswordVerifier, Version};
 use secrecy::{ExposeSecret, SecretString};
 use sqlx::SqlitePool;
-use uuid::Uuid;
-
-use crate::telemetry::spawn_blocking_with_tracing;
 
 #[derive(thiserror::Error, Debug)]
 pub enum AuthError {
@@ -14,15 +11,6 @@ pub enum AuthError {
     InvalidCredentials(#[source] anyhow::Error),
     #[error(transparent)]
     UnexpectedError(#[from] anyhow::Error),
-}
-
-impl IntoResponse for AuthError {
-    fn into_response(self) -> axum::response::Response {
-        match self {
-            AuthError::InvalidCredentials(_) => StatusCode::UNAUTHORIZED.into_response(),
-            AuthError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-        }
-    }
 }
 
 pub struct Credentials {
@@ -48,7 +36,7 @@ async fn get_stored_credentials(
     .context("Failed to performed a query to retrieve stored credentials.")?
     .map(|row| {
         (
-            Uuid::parse_str(&row.uuid).unwrap(),
+            uuid::Uuid::parse_str(&row.uuid).unwrap(),
             SecretString::from(row.password_hash),
         )
     });
@@ -64,8 +52,7 @@ pub async fn validate_credentials(
     let mut expected_password_hash = SecretString::from(
         "$argon2id$v=19$m=15000,t=2,p=1$\
         gZiV/M1gPc22ElAH/Jh1Hw$\
-        CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno"
-            .to_string(),
+        CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno",
     );
 
     if let Some((stored_user_id, stored_password_hash)) =
@@ -104,4 +91,42 @@ fn verify_password_hash(
         )
         .context("Invalid password.")
         .map_err(AuthError::InvalidCredentials)
+}
+
+#[tracing::instrument(name = "Change password", skip(password, pool))]
+pub async fn change_password(
+    user_id: uuid::Uuid,
+    password: SecretString,
+    pool: &SqlitePool,
+) -> Result<(), anyhow::Error> {
+    let user_id = user_id.to_string();
+    let password_hash = spawn_blocking_with_tracing(move || compute_password_hash(password))
+        .await?
+        .context("Failed to hash password")?;
+    let password_hash = password_hash.expose_secret();
+    sqlx::query!(
+        r#"
+        UPDATE users
+        SET password_hash = $1
+        WHERE uuid = $2
+        "#,
+        password_hash,
+        user_id
+    )
+    .execute(pool)
+    .await
+    .context("Failed to change user's password in the database.")?;
+    Ok(())
+}
+
+fn compute_password_hash(password: SecretString) -> Result<SecretString, anyhow::Error> {
+    let salt = SaltString::generate(&mut rand_core::OsRng);
+    let password_hash = Argon2::new(
+        Algorithm::Argon2id,
+        Version::V0x13,
+        Params::new(15000, 2, 1, None).unwrap(),
+    )
+    .hash_password(password.expose_secret().as_bytes(), &salt)?
+    .to_string();
+    Ok(SecretString::from(password_hash))
 }

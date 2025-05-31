@@ -1,0 +1,61 @@
+---
+import Layout from "../layouts/Layout.astro";
+import "@/styles/starwind.css";
+import { Button } from "@/components/starwind/button";
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "@/components/starwind/card";
+---
+
+<Layout>
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card class="bg-[#0a0a0a] border-[#1a1a1a] max-w-2xl mx-auto">
+            <CardHeader>
+                <CardTitle class="text-2xl font-bold text-[#b0b0b0]">
+                    Welcome [[.username]]!
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div class="space-y-6">
+                    <div>
+                        <h2 class="text-xl font-semibold text-[#b0b0b0] mb-4">
+                            Available Actions
+                        </h2>
+                        <div class="space-y-4">
+                            <a href="/admin/newsletters">
+                                <Button
+                                    class="w-full bg-[#000000] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#c0c0c0] hover:text-[#000000] transition-colors"
+                                >
+                                    Publish Newsletter
+                                </Button>
+                            </a>
+                            <a href="/admin/password">
+                                <Button
+                                    class="w-full bg-[#000000] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#c0c0c0] hover:text-[#000000] transition-colors"
+                                >
+                                    Change Password
+                                </Button>
+                            </a>
+                            <form
+                                name="logoutForm"
+                                action="/admin/logout"
+                                method="post"
+                                class="w-full"
+                            >
+                                <Button
+                                    type="submit"
+                                    class="w-full bg-[#000000] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#c0c0c0] hover:text-[#000000] transition-colors"
+                                >
+                                    Logout
+                                </Button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    </div>
+</Layout>

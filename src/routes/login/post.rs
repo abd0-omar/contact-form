@@ -2,15 +2,16 @@ use std::sync::Arc;
 
 use axum::{
     extract::State,
-    response::{IntoResponse, Redirect},
+    response::{IntoResponse, Redirect, Response},
     Form,
 };
-use hmac::{Hmac, Mac};
-use secrecy::{ExposeSecret, SecretString};
+use axum_messages::Messages;
+use secrecy::SecretString;
 
 use crate::{
     authentication::{validate_credentials, AuthError, Credentials},
     routes::error_chain_fmt,
+    session_state::TypedSession,
     startup::AppState,
 };
 
@@ -21,13 +22,15 @@ pub struct FormData {
 }
 
 #[tracing::instrument(
-    skip(form, app_state),
+    skip(form, app_state, session, messages),
     fields(username=tracing::field::Empty, user_id=tracing::field::Empty)
 )]
 pub async fn login(
     State(app_state): State<Arc<AppState>>,
+    session: TypedSession,
+    messages: Messages,
     Form(form): Form<FormData>,
-) -> Result<impl IntoResponse, impl IntoResponse> {
+) -> Result<Response, Response> {
     let credentials = Credentials {
         username: form.username,
         password: form.password,
@@ -36,10 +39,28 @@ pub async fn login(
     match validate_credentials(credentials, &app_state.pool).await {
         Ok(user_id) => {
             tracing::Span::current().record("user_id", tracing::field::display(&user_id));
-            Ok(Redirect::to("/"))
+
+            if let Err(e) = session.rotate_id().await {
+                let err = LoginError::UnexpectedError(e.into());
+                tracing::error!(cause_chain = ?err);
+                messages.error("Could not rotate session id");
+                return Err(Redirect::to("/login").into_response());
+            }
+
+            if let Err(e) = session.insert_user_id(user_id).await {
+                let err = LoginError::UnexpectedError(e.into());
+                tracing::error!(cause_chain = ?err);
+                messages.error("Could not insert user id");
+                return Err(Redirect::to("/login").into_response());
+            }
+
+            Ok(Redirect::to("/admin/dashboard").into_response())
         }
         Err(e) => {
             let e = match e {
+                // we don't show the error message to the user
+                // so we don't do this
+                // AuthError::InvalidCredentials(e) => {
                 AuthError::InvalidCredentials(_) => {
                     tracing::warn!(cause_chain = ?e);
                     LoginError::AuthError(e.into())
@@ -50,19 +71,8 @@ pub async fn login(
                 }
             };
 
-            let query_string = format!("error={}", urlencoding::Encoded::new(e.to_string()));
-            let hmac_tag = {
-                let mut mac = Hmac::<sha2::Sha256>::new_from_slice(
-                    &app_state.hmac_secret.0.expose_secret().as_bytes(),
-                )
-                .unwrap();
-                mac.update(query_string.as_bytes());
-                mac.finalize().into_bytes()
-            };
-
-            Err(Redirect::to(&format!(
-                "/login?{query_string}&tag={hmac_tag:x}"
-            )))
+            messages.error(e.to_string());
+            Ok(Redirect::to("/login").into_response())
         }
     }
 }
@@ -86,6 +96,9 @@ pub enum LoginError {
 //             }
 //             LoginError::UnexpectedError(error) => {
 //                 tracing::error!(cause_chain = ?error);
+//                 // login redirect
+//                 // return a redirect to the login page with the error message
+
 //                 StatusCode::INTERNAL_SERVER_ERROR.into_response()
 //             }
 //         }

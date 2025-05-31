@@ -3,12 +3,13 @@ import Layout from "../layouts/Layout.astro";
 import "@/styles/starwind.css";
 import { Button } from "@/components/starwind/button";
 import { Card } from "@/components/starwind/card";
+import SubscribeForm from "@/components/SubscribeForm.astro";
 ---
 
 <Layout>
 	<!-- Hero Section -->
-	<section class="py-20 text-center">
-		<div class="max-w-3xl mx-auto px-4">
+	<section class="py-20 text-center container mx-auto px-4 sm:px-6 lg:px-8">
+		<div class="max-w-3xl mx-auto">
 			<h1 class="text-4xl md:text-5xl font-bold text-[#b0b0b0] mb-6">
 				Stay Informed with Newzletter
 			</h1>
@@ -16,28 +17,17 @@ import { Card } from "@/components/starwind/card";
 				Get curated news and updates delivered straight to your inbox.
 				Stay ahead with our carefully selected content.
 			</p>
-			<div class="flex flex-col sm:flex-row gap-4 justify-center">
-				<a href="/subscriptions">
-					<Button
-						class="bg-[#000000] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#c0c0c0] hover:text-[#000000] transition-colors px-8 py-3"
-					>
-						Subscribe Now
-					</Button>
-				</a>
-				<a href="/about">
-					<Button
-						class="bg-[#0a0a0a] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#1a1a1a] transition-colors px-8 py-3"
-					>
-						Learn More
-					</Button>
-				</a>
+			<div class="mb-8">
+				<SubscribeForm />
 			</div>
 		</div>
 	</section>
 
 	<!-- Features Section -->
-	<section class="py-16 bg-[#0a0a0a] border-y border-[#1a1a1a]">
-		<div class="container mx-auto px-4">
+	<section
+		class="py-16 border-y border-[#1a1a1a] container mx-auto px-4 sm:px-6 lg:px-8"
+	>
+		<div class="max-w-6xl mx-auto">
 			<h2 class="text-3xl font-bold text-[#b0b0b0] text-center mb-12">
 				Why Choose Newzletter?
 			</h2>
@@ -80,8 +70,8 @@ import { Card } from "@/components/starwind/card";
 	</section>
 
 	<!-- CTA Section -->
-	<section class="py-20">
-		<div class="max-w-3xl mx-auto px-4 text-center">
+	<section class="py-20 container mx-auto px-4 sm:px-6 lg:px-8">
+		<div class="max-w-3xl mx-auto text-center">
 			<h2 class="text-3xl font-bold text-[#b0b0b0] mb-6">
 				Ready to Stay Informed?
 			</h2>

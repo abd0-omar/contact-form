@@ -1,39 +1,50 @@
-use std::{sync::Arc, time::Duration};
+use crate::routes::subscribe_form;
+use std::sync::Arc;
 
 use axum::{
     extract::{FromRef, Request},
+    middleware,
     response::Response,
     routing::{get, post},
     serve::Serve,
     Router,
 };
-use secrecy::SecretString;
+use axum_messages::MessagesManagerLayer;
+use secrecy::{ExposeSecret, SecretString};
 use sqlx::SqlitePool;
+use time::Duration;
 use tokio::net::TcpListener;
+use tower::ServiceBuilder;
 use tower_http::{services::ServeDir, trace::TraceLayer};
-use tracing::{info, info_span, Span};
-use uuid::Uuid;
+use tower_sessions::{Expiry, SessionManagerLayer};
+use tower_sessions_redis_store::{
+    fred::{clients::Pool, prelude::*},
+    RedisStore,
+};
 
+use crate::routes::{
+    admin_dashboard, change_password, change_password_form, confirm, health_check, home, log_out,
+    login, login_form, publish_newsletter, publish_newsletter_form, subscribe,
+};
 use crate::{
+    authentication::reject_anonymous_users,
     configuration::{configure_database, Settings},
     email_client::EmailClient,
-    routes::{
-        confirm, health_check::health_check, home::home, login, login_form, publish_newsletter,
-        subscribe_form, subscriptions::subscribe,
-    },
 };
+use tracing::{info, info_span, Span};
+use uuid::Uuid;
 
 pub struct AppState {
     pub pool: SqlitePool,
     pub email_client: EmailClient,
     pub base_url: ApplicationBaseUrl,
-    pub hmac_secret: HmacSecret,
+    _hmac_secret: HmacSecret,
 }
 
 // substate
 impl FromRef<Arc<AppState>> for HmacSecret {
     fn from_ref(input: &Arc<AppState>) -> Self {
-        input.hmac_secret.clone()
+        input._hmac_secret.clone()
     }
 }
 
@@ -44,8 +55,34 @@ pub async fn run(
     pool: SqlitePool,
     email_client: EmailClient,
     base_url: String,
-    hmac_secret: SecretString,
+    _hmac_secret: SecretString,
+    redis_uri: SecretString,
 ) -> anyhow::Result<Serve<TcpListener, Router, Router>> {
+    // redis sessions
+    let redis_url = redis_uri.expose_secret();
+    let redis_config = Config::from_url(redis_url)
+        .map_err(|e| anyhow::anyhow!("Failed to parse Redis URL: {}", e))?;
+
+    let redis_pool = Pool::new(redis_config, None, None, None, 6)?;
+
+    let _redis_conn = redis_pool.connect();
+    redis_pool.wait_for_connect().await?;
+
+    let session_store = RedisStore::new(redis_pool);
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false)
+        .with_expiry(Expiry::OnInactivity(Duration::minutes(10)));
+
+    let admin_routes = Router::new()
+        .route("/dashboard", get(admin_dashboard))
+        .route("/password", get(change_password_form).post(change_password))
+        .route("/logout", post(log_out))
+        .route(
+            "/newsletters",
+            get(publish_newsletter_form).post(publish_newsletter),
+        )
+        .layer(middleware::from_fn(reject_anonymous_users));
+
     // Wrapped in an Arc pointer to allow cheap cloning of AppState across handlers.
     // This prevents unnecessary cloning of EmailClient, which has two String fields,
     // since cloning an Arc is negligible.
@@ -53,7 +90,7 @@ pub async fn run(
         pool,
         email_client,
         base_url: ApplicationBaseUrl(base_url),
-        hmac_secret: HmacSecret(SecretString::from(hmac_secret)),
+        _hmac_secret: HmacSecret(SecretString::from(_hmac_secret)),
     });
 
     let app = Router::new()
@@ -64,29 +101,36 @@ pub async fn run(
         .route("/subscriptions", post(subscribe))
         .route("/subscriptions", get(subscribe_form))
         .route("/subscriptions/confirm", get(confirm))
-        .route("/newsletters", post(publish_newsletter))
+        .nest("/admin", admin_routes)
         .fallback_service(ServeDir::new("frontend/dist"))
         .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(|request: &Request<_>| {
-                    let request_id = Uuid::new_v4();
-                    info_span!(
-                        "http_request",
-                        method = ?request.method(),
-                        uri = ?request.uri(),
-                        version = ?request.version(),
-                        request_id = ?request_id,
-                    )
-                })
-                .on_response(|response: &Response, latency: Duration, span: &Span| {
-                    let status = response.status();
-                    let headers = response.headers();
-                    span.record("status", &status.as_u16());
-                    info!(parent: span, ?status, ?headers, ?latency, "Response sent");
-                })
-                // By default `TraceLayer` will log 5xx responses but we're doing our specific
-                // logging of errors so disable that
-                .on_failure(()),
+            ServiceBuilder::new()
+                .layer(
+                    TraceLayer::new_for_http()
+                        .make_span_with(|request: &Request<_>| {
+                            let request_id = Uuid::new_v4();
+                            info_span!(
+                                "http_request",
+                                method = ?request.method(),
+                                uri = ?request.uri(),
+                                version = ?request.version(),
+                                request_id = ?request_id,
+                            )
+                        })
+                        .on_response(
+                            |response: &Response, latency: std::time::Duration, span: &Span| {
+                                let status = response.status();
+                                let headers = response.headers();
+                                span.record("status", &status.as_u16());
+                                info!(parent: span, ?status, ?headers, ?latency, "Response sent");
+                            },
+                        )
+                        // By default `TraceLayer` will log 5xx responses but we're doing our specific
+                        // logging of errors so disable that
+                        .on_failure(()),
+                )
+                .layer(session_layer)
+                .layer(MessagesManagerLayer),
         )
         .with_state(app_state);
 
@@ -133,9 +177,9 @@ impl Application {
             email_client,
             configuration.application.base_url,
             configuration.application.hmac_secret,
+            configuration.redis_uri,
         )
-        .await
-        .unwrap();
+        .await?;
 
         Ok(Self { server, port })
     }

@@ -3,7 +3,7 @@ use std::{str::FromStr, time::Duration};
 use config::{Config, ConfigError};
 use secrecy::SecretString;
 use serde::Deserialize;
-use serde_aux::field_attributes::deserialize_number_from_string;
+// use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::{
     sqlite::{SqliteAutoVacuum, SqliteConnectOptions, SqliteJournalMode, SqliteSynchronous},
     SqlitePool,
@@ -16,6 +16,7 @@ pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
     pub email_client: EmailClientSettings,
+    pub redis_uri: SecretString,
 }
 
 #[derive(Deserialize, Clone)]
@@ -23,7 +24,7 @@ pub struct ApplicationSettings {
     // env vars are strings for the config crate, and it will fail to pick up
     // integers using standard deserialization routine from serde
     // small caveat
-    #[serde(deserialize_with = "deserialize_number_from_string")]
+    // #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub host: String,
     pub base_url: String,
@@ -36,11 +37,11 @@ pub struct DatabaseSettings {
     pub create_if_missing: bool,
     pub journal_mode: String,
     pub synchronous: String,
-    #[serde(deserialize_with = "deserialize_number_from_string")]
+    // #[serde(deserialize_with = "deserialize_number_from_string")]
     pub busy_timeout: u64,
     pub foreign_keys: bool,
     pub auto_vacuum: String,
-    #[serde(deserialize_with = "deserialize_number_from_string")]
+    // #[serde(deserialize_with = "deserialize_number_from_string")]
     pub page_size: u32,
     pub cache_size: String,
     pub mmap_size: String,
@@ -91,6 +92,7 @@ pub struct EmailClientSettings {
     pub base_url: String,
     pub sender_email: String,
     pub authorization_token: SecretString,
+    // #[serde(deserialize_with = "deserialize_number_from_string")]
     pub timeout_milliseconds: u64,
 }
 

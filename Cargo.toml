@@ -15,7 +15,7 @@ path = "src/lib.rs"
 axum = "0.8.1"
 tokio = { version = "1.44.1", features = ["macros", "rt-multi-thread"] }
 anyhow = "1.0.97"
-reqwest = { version = "0.12.15", features = ["json"] }
+reqwest = { version = "0.12.15", features = ["json", "rustls-tls", "cookies"] }
 serde = { version = "1.0.219", features = ["derive"] }
 thiserror = "2.0.12"
 config = { version = "0.15.11", default-features = false, features = ["yaml"] }
@@ -29,7 +29,7 @@ sqlx = { version = "0.8.3", default-features = false, features = [
     # "chrono",
     "migrate",
 ] }
-uuid = { version = "1.16.0", features = ["v4"] }
+uuid = { version = "1.16.0", features = ["v4", "serde"] }
 chrono = { version = "0.4.40", default-features = false, features = ["clock"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = [
@@ -56,6 +56,14 @@ argon2 = { version = "0.5", features = ["std"] }
 rinja_axum = "0.3.5"
 axum-extra = { version = "0.10.1", features = ["query"] }
 tower = "0.5.2"
+tower-sessions = "0.14.0"
+tower-sessions-redis-store = { version = "0.16.0", features = [
+    "enable-native-tls",
+] }
+# not maintained
+# axum-flash = "0.8.0"
+axum-messages = "0.8.0"
+time = "0.3.41"
 
 [dev-dependencies]
 quickcheck = "1.0.3"

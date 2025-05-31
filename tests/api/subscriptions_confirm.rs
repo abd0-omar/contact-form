@@ -9,7 +9,7 @@ use crate::helpers::{spawn_app, FormData};
 #[tokio::test]
 async fn confirmations_without_token_are_rejected_with_a_400() {
     // Arrange
-    let app = spawn_app().await.unwrap();
+    let app = spawn_app().await;
     // Act
     let response = reqwest::get(&format!("{}/subscriptions/confirm", app.address))
         .await
@@ -23,7 +23,7 @@ async fn confirmations_without_token_are_rejected_with_a_400() {
 #[tokio::test]
 async fn the_link_returned_by_subscribe_returns_a_200_if_called() {
     // Arrange
-    let app = spawn_app().await.unwrap();
+    let app = spawn_app().await;
     let fake_user_form_data = FormData {
         name: Some("abood".to_string()),
         email: Some("3la_el_7doood@yahoo.com".to_string()),
@@ -51,7 +51,7 @@ async fn the_link_returned_by_subscribe_returns_a_200_if_called() {
 #[tokio::test]
 async fn clicking_on_the_confirmation_link_confirms_a_subscriber() {
     // Arrange
-    let app = spawn_app().await.unwrap();
+    let app = spawn_app().await;
     let body = FormData {
         name: Some("abood".to_string()),
         email: Some("3la_el_7doood@yahoo.com".to_string()),

@@ -1,0 +1,102 @@
+---
+import Layout from "../layouts/Layout.astro";
+import "@/styles/starwind.css";
+import { Button } from "@/components/starwind/button";
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from "@/components/starwind/card";
+import { Input } from "@/components/starwind/input";
+import { Label } from "@/components/starwind/label";
+import { Textarea } from "@/components/starwind/textarea";
+---
+
+<Layout>
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card class="bg-[#0a0a0a] border-[#1a1a1a] max-w-4xl mx-auto">
+            <CardHeader>
+                <CardTitle class="text-2xl font-bold text-[#b0b0b0]">
+                    Publish Newsletter
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div class="space-y-6">
+                    %% for error in errors %%
+                    <div
+                        class="p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-md"
+                    >
+                        <p class="text-[#ff6b6b]"><i>[[.error]]</i></p>
+                    </div>
+                    %% endfor %%
+
+                    <form
+                        action="/admin/newsletters"
+                        method="post"
+                        class="space-y-6"
+                    >
+                        <div class="space-y-2">
+                            <Label for="title" class="text-[#a0a0a0]"
+                                >Title</Label
+                            >
+                            <Input
+                                type="text"
+                                id="title"
+                                name="title"
+                                placeholder="Enter the issue title"
+                                required
+                                class="bg-[#000000] border-[#1a1a1a] text-[#b0b0b0] placeholder-[#666666] focus:border-[#b0b0b0]"
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <Label for="text_content" class="text-[#a0a0a0]"
+                                >Plain Text Content</Label
+                            >
+                            <Textarea
+                                id="text_content"
+                                name="text_content"
+                                placeholder="Enter the content in plain text"
+                                rows="20"
+                                required
+                                class="bg-[#000000] border-[#1a1a1a] text-[#b0b0b0] placeholder-[#666666] focus:border-[#b0b0b0] resize-none"
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <Label for="html_content" class="text-[#a0a0a0]"
+                                >HTML Content</Label
+                            >
+                            <Textarea
+                                id="html_content"
+                                name="html_content"
+                                placeholder="Enter the content in HTML format"
+                                rows="20"
+                                required
+                                class="bg-[#000000] border-[#1a1a1a] text-[#b0b0b0] placeholder-[#666666] focus:border-[#b0b0b0] resize-none font-mono"
+                            />
+                        </div>
+
+                        <div class="flex justify-between items-center pt-4">
+                            <a href="/dashboard">
+                                <Button
+                                    type="button"
+                                    class="bg-[#000000] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#c0c0c0] hover:text-[#000000] transition-colors"
+                                >
+                                    Back to Dashboard
+                                </Button>
+                            </a>
+                            <Button
+                                type="submit"
+                                class="bg-[#000000] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#c0c0c0] hover:text-[#000000] transition-colors"
+                            >
+                                Publish Newsletter
+                            </Button>
+                        </div>
+                    </form>
+                </div>
+            </CardContent>
+        </Card>
+    </div>
+</Layout>

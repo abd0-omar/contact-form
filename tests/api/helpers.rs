@@ -35,6 +35,7 @@ pub struct TestApp {
     // to later delete it
     pub db_path: String,
     pub test_user: TestUser,
+    pub api_client: reqwest::Client,
 }
 
 #[derive(Serialize)]
@@ -50,7 +51,7 @@ pub struct ConfirmationLinks {
 
 impl TestApp {
     pub async fn post_subscriptions(&self, form_data: &FormData) -> reqwest::Response {
-        reqwest::Client::new()
+        self.api_client
             .post(&format!("{}/subscriptions", &self.address))
             .form(form_data)
             .send()
@@ -58,15 +59,97 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
-    pub async fn post_newsletters(&self, body: serde_json::Value) -> reqwest::Response {
-        reqwest::Client::new()
-            .post(&format!("{}/newsletters", &self.address))
-            .basic_auth(&self.test_user.username, Some(&self.test_user.password))
-            .json(&body)
+    pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.api_client
+            .post(&format!("{}/login", &self.address))
+            .form(body)
             .send()
             .await
             .expect("Failed to execute request.")
     }
+
+    pub async fn get_login_html(&self) -> String {
+        self.api_client
+            .get(&format!("{}/login", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+            .text()
+            .await
+            .unwrap()
+    }
+
+    pub async fn get_admin_dashboard_html(&self) -> String {
+        self.get_admin_dashboard().await.text().await.unwrap()
+    }
+
+    pub async fn get_change_password(&self) -> reqwest::Response {
+        self.api_client
+            .get(&format!("{}/admin/password", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn get_change_password_html(&self) -> String {
+        self.get_change_password().await.text().await.unwrap()
+    }
+
+    pub async fn post_logout(&self) -> reqwest::Response {
+        self.api_client
+            .post(&format!("{}/admin/logout", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn post_change_password<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.api_client
+            .post(&format!("{}/admin/password", &self.address))
+            .form(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn get_publish_newsletter(&self) -> reqwest::Response {
+        self.api_client
+            .get(&format!("{}/admin/newsletters", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn get_publish_newsletter_html(&self) -> String {
+        self.get_publish_newsletter().await.text().await.unwrap()
+    }
+
+    pub async fn get_admin_dashboard(&self) -> reqwest::Response {
+        self.api_client
+            .get(&format!("{}/admin/dashboard", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn post_publish_newsletter<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.api_client
+            .post(&format!("{}/admin/newsletters", &self.address))
+            .form(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
     /// Extract the confirmation links embedded in the request to the email API.
     pub fn get_confirmation_links(&self, email_request: &wiremock::Request) -> ConfirmationLinks {
         let body: serde_json::Value = serde_json::from_slice(&email_request.body).unwrap();
@@ -97,12 +180,12 @@ impl TestApp {
     }
 }
 
-pub async fn spawn_app() -> anyhow::Result<TestApp> {
+pub async fn spawn_app() -> TestApp {
     // The first time `initialize` is invoked the code in `TRACING` is executed.
     // All other invocations will instead skip execution.
     LazyLock::force(&TRACING);
 
-    fs::create_dir_all("scripts/a_place_for_test_dbs_to_spawn_in_it,supposed_to_be_empty_cuz_tests_terminate_after_success_execution/")?;
+    fs::create_dir_all("scripts/a_place_for_test_dbs_to_spawn_in_it,supposed_to_be_empty_cuz_tests_terminate_after_success_execution/").expect("Failed to create directory");
 
     let email_server = MockServer::start().await;
 
@@ -124,10 +207,17 @@ pub async fn spawn_app() -> anyhow::Result<TestApp> {
         configuration
     };
 
-    let db_pool = configure_database(&configuration.database).await?;
-    sqlx::migrate!("./migrations").run(&db_pool).await?;
+    let db_pool = configure_database(&configuration.database)
+        .await
+        .expect("Failed to configure database");
+    sqlx::migrate!("./migrations")
+        .run(&db_pool)
+        .await
+        .expect("Failed to run migrations");
 
-    let application = Application::build(configuration.clone()).await?;
+    let application = Application::build(configuration.clone())
+        .await
+        .expect("Failed to build application");
 
     let db_path = configuration.database.database_path;
     let application_host = configuration.application.host;
@@ -136,6 +226,13 @@ pub async fn spawn_app() -> anyhow::Result<TestApp> {
     let address = format!("http://{}:{}", application_host, application.port());
 
     tokio::spawn(async move { application.run_until_stopped().await.unwrap() });
+
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .cookie_store(true)
+        .build()
+        .unwrap();
+
     let test_app = TestApp {
         address,
         port: application_port,
@@ -143,14 +240,16 @@ pub async fn spawn_app() -> anyhow::Result<TestApp> {
         db_path,
         email_server,
         test_user: TestUser::generate(),
+        api_client: client,
     };
+
     test_app.test_user.store(&db_pool).await;
 
-    Ok(test_app)
+    test_app
 }
 
 pub struct TestUser {
-    pub uuid: Uuid,
+    uuid: Uuid,
     pub username: String,
     pub password: String,
 }
@@ -162,6 +261,14 @@ impl TestUser {
             username: Uuid::new_v4().to_string(),
             password: Uuid::new_v4().to_string(),
         }
+    }
+
+    pub async fn login(&self, app: &TestApp) {
+        app.post_login(&serde_json::json!({
+            "username": &self.username,
+            "password": &self.password
+        }))
+        .await;
     }
 
     async fn store(&self, pool: &SqlitePool) {
@@ -191,4 +298,9 @@ impl TestUser {
         .await
         .expect("Failed to store test user.");
     }
+}
+
+pub fn assert_is_redirect_to(response: &reqwest::Response, location: &str) {
+    assert_eq!(response.status().as_u16(), 303);
+    assert_eq!(response.headers().get("Location").unwrap(), location);
 }

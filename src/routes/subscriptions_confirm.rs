@@ -35,8 +35,14 @@ impl std::fmt::Debug for ConfirmationError {
 impl IntoResponse for ConfirmationError {
     fn into_response(self) -> axum::response::Response {
         match self {
-            Self::UnknownToken => StatusCode::UNAUTHORIZED,
-            Self::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::UnknownToken => {
+                tracing::error!(cause_chain = ?self);
+                StatusCode::UNAUTHORIZED
+            }
+            Self::UnexpectedError(e) => {
+                tracing::error!(cause_chain = ?e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         }
         .into_response()
     }

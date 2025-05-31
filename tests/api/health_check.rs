@@ -5,7 +5,7 @@ use crate::helpers::spawn_app;
 #[tokio::test]
 pub async fn health_check_works() {
     // Arrange
-    let app = spawn_app().await.unwrap();
+    let app = spawn_app().await;
     let client = Client::new();
 
     // Act

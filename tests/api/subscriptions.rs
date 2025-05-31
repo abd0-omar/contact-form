@@ -9,7 +9,7 @@ use crate::helpers::{spawn_app, FormData};
 #[tokio::test]
 async fn subscribe_returns_a_200_for_valid_form_data() {
     // Arrange
-    let app = spawn_app().await.unwrap();
+    let app = spawn_app().await;
     let fake_user_form_data = FormData {
         name: Some("abood".to_string()),
         email: Some("3la_el_7doood@yahoo.com".to_string()),
@@ -33,7 +33,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 #[tokio::test]
 async fn subscribe_persists_the_new_subscriber() {
     // Arrange
-    let app = spawn_app().await.unwrap();
+    let app = spawn_app().await;
     let fake_user_form_data = FormData {
         name: Some("abood".to_string()),
         email: Some("3la_el_7doood@yahoo.com".to_string()),
@@ -58,7 +58,7 @@ async fn subscribe_persists_the_new_subscriber() {
 #[tokio::test]
 async fn subscribe_fails_if_there_is_a_fatal_database_error() {
     // Arrange
-    let app = spawn_app().await.unwrap();
+    let app = spawn_app().await;
     let body = FormData {
         name: Some("abood".to_string()),
         email: Some("3la_el_7doood@yahoo.com".to_string()),
@@ -86,7 +86,7 @@ async fn subscribe_fails_if_there_is_a_fatal_database_error() {
 pub async fn subscribe_returns_a_422_when_data_is_missing() {
     // Arrange
 
-    let app = spawn_app().await.unwrap();
+    let app = spawn_app().await;
 
     let test_cases = vec![
         (
@@ -129,7 +129,7 @@ pub async fn subscribe_returns_a_422_when_data_is_missing() {
 #[tokio::test]
 async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
     // Arrange
-    let app = spawn_app().await.unwrap();
+    let app = spawn_app().await;
     let test_cases = [
         (
             FormData {
@@ -173,7 +173,7 @@ async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
 #[tokio::test]
 async fn subscribe_sends_a_confirmation_email_for_valid_data() {
     // Arrange
-    let app = spawn_app().await.unwrap();
+    let app = spawn_app().await;
 
     Mock::given(path("/email"))
         .and(method("POST"))
@@ -197,7 +197,7 @@ async fn subscribe_sends_a_confirmation_email_for_valid_data() {
 #[tokio::test]
 async fn subscribe_sends_a_confirmation_email_with_a_link() {
     // Arrange
-    let app = spawn_app().await.unwrap();
+    let app = spawn_app().await;
     let body = FormData {
         name: Some("abood".to_string()),
         email: Some("3la_el_7doood@yahoo.com".to_string()),
