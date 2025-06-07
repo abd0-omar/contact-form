@@ -1,0 +1,57 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import {
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardContent,
+} from "@/components/starwind/card";
+import { getCollection } from "astro:content";
+
+// Get all blog posts
+const posts = await getCollection("blog");
+
+// Sort posts by date
+const sortedPosts = posts.sort((a, b) => {
+    return new Date(b.data.date).getTime() - new Date(a.data.date).getTime();
+});
+---
+
+<Layout>
+    <section class="py-20 container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-4xl font-bold text-[#b0b0b0] mb-8">Blog Posts</h1>
+
+            <div class="grid gap-6">
+                {
+                    sortedPosts.map((post) => (
+                        <Card class="bg-[#000000] border-[#1a1a1a] hover:border-[#2a2a2a] transition-colors">
+                            <a href={`/blog/${post.slug}`} class="block">
+                                <CardHeader>
+                                    <CardTitle class="text-[#b0b0b0] hover:text-[#c0c0c0] transition-colors">
+                                        {post.data.title}
+                                    </CardTitle>
+                                    <CardDescription class="text-[#a0a0a0]">
+                                        {new Date(
+                                            post.data.date,
+                                        ).toLocaleDateString("en-US", {
+                                            year: "numeric",
+                                            month: "long",
+                                            day: "numeric",
+                                        })}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <p class="text-[#a0a0a0]">
+                                        {post.data.description}
+                                    </p>
+                                </CardContent>
+                            </a>
+                        </Card>
+                    ))
+                }
+            </div>
+        </div>
+    </section>
+</Layout>

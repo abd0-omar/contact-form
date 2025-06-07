@@ -9,12 +9,16 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@tabler/icons": "^3.33.0",
+    "@astrojs/markdown-remark": "^6.3.2",
+    "@astrojs/tailwind": "^6.0.2",
+    "@tabler/icons": "^3.34.0",
     "@tailwindcss/forms": "^0.5.10",
-    "@tailwindcss/vite": "^4.1.7",
-    "astro": "^5.7.13",
+    "@tailwindcss/postcss": "^4.1.8",
+    "@tailwindcss/typography": "^0.5.16",
+    "@tailwindcss/vite": "^4.1.8",
+    "astro": "^5.9.1",
     "tailwind-variants": "^1.0.0",
-    "tailwindcss": "^4.1.7",
-    "tw-animate-css": "^1.3.0"
+    "tailwindcss": "^4.1.8",
+    "tw-animate-css": "^1.3.4"
   }
 }

@@ -11,6 +11,7 @@
 		from {
 			height: 0;
 		}
+
 		to {
 			height: var(--starwind-accordion-content-height);
 		}
@@ -20,6 +21,7 @@
 		from {
 			height: var(--starwind-accordion-content-height);
 		}
+
 		to {
 			height: 0;
 		}
@@ -124,18 +126,22 @@
 	* {
 		@apply border-border;
 	}
+
 	*:focus-visible {
 		@apply outline-outline;
 	}
+
 	html {
 		@apply bg-background text-foreground scheme-light dark:scheme-dark;
 	}
+
 	button {
 		@apply cursor-pointer;
 	}
 }
 
 @layer utilities {
+
 	/* transition-colors but without outline-color transition property */
 	.starwind-transition-colors {
 		transition-property: color, background-color, border-color, text-decoration-color, fill, stroke,
