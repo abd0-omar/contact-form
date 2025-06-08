@@ -1,0 +1,162 @@
+<!DOCTYPE html><html lang="en" data-theme="nord-dark"> <head><!-- Global Metadata --><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png"><link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png"><link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png"><link rel="manifest" href="/favicon_io/site.webmanifest"><link rel="sitemap" href="/sitemap-index.xml"><link rel="alternate" type="application/rss+xml" title="Talga" href="https://example.com/rss.xml"><meta name="generator" content="Astro v5.9.1"><!-- Font preloads --><link rel="preload" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" as="style"><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback"><!-- Canonical URL --><link rel="canonical" href="https://example.com/blog/astro-rust/"><!-- Primary Meta Tags --><title>Rust templates with Astro</title><meta name="title" content="Rust templates with Astro"><meta name="description" content="How to use Rinja-Axum with Astro for server-side dynamic data injection"><!-- Open Graph / Facebook --><meta property="og:type" content="website"><meta property="og:url" content="https://example.com/blog/astro-rust/"><meta property="og:title" content="Rust templates with Astro"><meta property="og:description" content="How to use Rinja-Axum with Astro for server-side dynamic data injection"><meta property="og:image" content="https://example.com/_astro/blog-placeholder-1.Bx0Zcyzv.jpg"><!-- Twitter --><meta property="twitter:card" content="summary_large_image"><meta property="twitter:url" content="https://example.com/blog/astro-rust/"><meta property="twitter:title" content="Rust templates with Astro"><meta property="twitter:description" content="How to use Rinja-Axum with Astro for server-side dynamic data injection"><meta property="twitter:image" content="https://example.com/_astro/blog-placeholder-1.Bx0Zcyzv.jpg"><link rel="stylesheet" href="/_astro/about.DGyZEND-.css"></head> <body class="bg-base-100 text-base-content"> <header class="navbar bg-base-100 shadow-lg sticky top-0 z-50"> <div class="navbar-start"> <h2 class="font-bold" style="font-size: 18px;"> <a href="/" class="btn btn-ghost normal-case text-primary hover:text-primary-focus" style="font-size: 18px;"> Talga </a> </h2> </div> <div class="navbar-center hidden lg:flex"> <ul class="menu menu-horizontal px-1" style="font-size: 18px;"> <li><a href="/" class="btn btn-ghost px-4" style="font-size: 18px !important;"> Home </a></li> <li><a href="/blog" class="btn btn-ghost px-4 btn-active text-primary" style="font-size: 18px !important;"> Blog </a></li> <li><a href="/about" class="btn btn-ghost px-4" style="font-size: 18px !important;"> About </a></li> <!-- {
+				!isLoggedIn && ( --> <li> <a href="/subscriptions" class="btn btn-ghost px-4" style="font-size: 18px !important;"> Subscribe </a> </li> <!-- )
+			}
+			{
+				isLoggedIn && ( --> <!-- <>
+						<li>
+							<HeaderLink href="/dashboard">Dashboard</HeaderLink>
+						</li>
+						<li>
+							<HeaderLink href="/admin/newsletters">
+								Publish
+							</HeaderLink>
+						</li>
+					</> --> <!-- )
+			} --> </ul> </div> <div class="navbar-end"> <!-- Mobile menu dropdown --> <div class="dropdown dropdown-end lg:hidden"> <label tabindex="0" class="btn btn-ghost btn-circle"> <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path> </svg> </label> <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52" style="font-size: 18px;"> <li><a href="/" class="btn btn-ghost px-4" style="font-size: 18px !important;"> Home </a></li> <li><a href="/blog" class="btn btn-ghost px-4 btn-active text-primary" style="font-size: 18px !important;"> Blog </a></li> <li><a href="/about" class="btn btn-ghost px-4" style="font-size: 18px !important;"> About </a></li> <!-- {
+					!isLoggedIn && ( --> <li> <a href="/subscriptions" class="btn btn-ghost px-4" style="font-size: 18px !important;">  Subscribe  </a> </li> <!-- )
+				}
+				{
+					isLoggedIn && (
+						<>
+							<li>
+								<HeaderLink href="/dashboard">
+									Dashboard
+								</HeaderLink>
+							</li>
+							<li>
+								<HeaderLink href="/admin/newsletters">
+									Publish
+								</HeaderLink>
+							</li>
+						</>
+					)
+				} --> </ul> </div> <!-- Auth buttons --> <!-- <div class="hidden sm:flex gap-2"> --> <!-- {
+				!isLoggedIn ? ( --> <a href="/login" class="btn btn-primary btn-sm"> Login </a> <!-- ) : (
+					<form action="/admin/logout" method="post" class="m-0">
+						<button type="submit" class="btn btn-ghost btn-sm">
+							Logout
+						</button>
+					</form>
+				)
+			} --> <!-- </div> --> <!-- Social links - hidden on mobile --> <div class="hidden sm:flex gap-2 ml-2"> <a href="https://github.com/abd0-Omar" target="_blank" class="btn btn-ghost btn-circle btn-sm" aria-label="Go to talga's GitHub repo" style="font-size: 18px;"> <svg class="w-[18px] h-[18px] fill-current" viewBox="0 0 16 16" aria-hidden="true"> <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path> </svg> </a> </div> <div class="hidden sm:flex gap-2 ml-2"> <a href="https://www.linkedin.com/in/abdelrahman-omar-739126248/" target="_blank" class="btn btn-ghost btn-circle btn-sm" aria-label="Go to Abdelrahman's LinkedIn profile" style="font-size: 18px;"> <svg class="w-[24px] h-[24px] fill-current" viewBox="0 0 24 24" aria-hidden="true"> <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"></path> </svg> </a> </div> <div class="hidden sm:flex gap-2 ml-2"> <a href="mailto:abdelrahman.omar.elgendy@gmail.com" class="btn btn-ghost btn-circle btn-sm" aria-label="Send email to Abdelrahman" style="font-size: 18px;"> <svg class="w-[24px] h-[24px] fill-current" viewBox="0 0 24 24" aria-hidden="true"> <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"></path> </svg> </a> </div> </div> </header> <main class="container mx-auto max-w-3xl px-4 py-8"> <article class="card bg-base-100 shadow-lg"> <!-- Hero Image Section --> <figure class="card-image"> <img src="/_astro/Astro%20x%20Rust.Bc5xSf4G_1Ag0cJ.webp" alt width="1020" height="510" loading="lazy" decoding="async" class="w-full h-64 md:h-80 object-cover rounded-t-box"> </figure> <!-- Content Section --> <div class="card-body"> <!-- Title and Meta Section --> <div class="text-center mb-8"> <!-- Date Badge --> <div class="flex flex-col sm:flex-row items-center justify-center gap-2 mb-4"> <div class="badge badge-primary badge-lg"> <time datetime="2025-06-07T21:00:00.000Z"> Jun 8, 2025 </time> </div>  </div> <!-- Title --> <h1 class="card-title text-3xl md:text-4xl lg:text-5xl text-primary mb-4 justify-center"> Rust templates with Astro </h1> <!-- Divider --> <div class="divider divider-primary"></div> </div> <!-- Blog Content --> <div class="prose prose-lg max-w-none">  <h1 id="integrating-rust-with-astro-using-rinja">Integrating Rust with Astro Using Rinja</h1>
+<p>This post is fully inspired by <a href="https://www.wingravity.com/blog/go-templates-with-astro">go-templates-with-astro</a>.</p>
+<p>We’ll walk through how to integrate a Rust backend (using Axum) with Astro frontend, leveraging the <a href="https://rinja.readthedocs.io/">Rinja</a> templating engine with custom syntax to avoid conflicts.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>Ensure you have <a href="https://www.rust-lang.org/tools/install">Rust</a> and <a href="https://nodejs.org/en/download/">Node.js</a> installed.</p>
+<h2 id="backend-setup">Backend Setup</h2>
+<p>Initialize a new Rust project:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cargo</span><span style="color:#9ECBFF"> new</span><span style="color:#9ECBFF"> astro-rust</span></span>
+<span class="line"><span style="color:#79B8FF">cd</span><span style="color:#9ECBFF"> astro-rust</span></span>
+<span class="line"><span style="color:#B392F0">cargo</span><span style="color:#9ECBFF"> add</span><span style="color:#9ECBFF"> axum</span><span style="color:#9ECBFF"> rinja_axum</span><span style="color:#9ECBFF"> tokio</span><span style="color:#9ECBFF"> tower-http</span><span style="color:#79B8FF"> --features</span><span style="color:#9ECBFF"> tower-http/fs,tokio/rt-multi-thread</span></span></code></pre>
+<h3 id="customizing-rinja-syntax">Customizing Rinja Syntax</h3>
+<p>To prevent conflicts between Rinja and Astro’s syntax, we’ll define some custom syntax.</p>
+<p>Create a <code>rinja.toml</code> file in the project root directory:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="toml"><code><span class="line"><span style="color:#E1E4E8">[</span><span style="color:#B392F0">general</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#6A737D"># We'll call our frontend directory "frontend" (very creative).</span></span>
+<span class="line"><span style="color:#6A737D"># "frontend/dist" is where the built frontend files will live.</span></span>
+<span class="line"><span style="color:#E1E4E8">dirs = [</span><span style="color:#9ECBFF">"frontend/dist/"</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#E1E4E8">default_syntax = </span><span style="color:#9ECBFF">"astro"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">[[</span><span style="color:#B392F0">syntax</span><span style="color:#E1E4E8">]]</span></span>
+<span class="line"><span style="color:#E1E4E8">name = </span><span style="color:#9ECBFF">"astro"</span></span>
+<span class="line"><span style="color:#6A737D"># Custom delimiters to avoid conflicts with Astro's syntax.</span></span>
+<span class="line"><span style="color:#E1E4E8">expr_start = </span><span style="color:#9ECBFF">"[[."</span></span>
+<span class="line"><span style="color:#E1E4E8">expr_end = </span><span style="color:#9ECBFF">"]]"</span></span>
+<span class="line"><span style="color:#E1E4E8">comment_start = </span><span style="color:#9ECBFF">"%[[#"</span></span>
+<span class="line"><span style="color:#E1E4E8">comment_end = </span><span style="color:#9ECBFF">"#]]"</span></span>
+<span class="line"><span style="color:#E1E4E8">block_start = </span><span style="color:#9ECBFF">"%%"</span></span>
+<span class="line"><span style="color:#E1E4E8">block_end = </span><span style="color:#9ECBFF">"%%"</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># These custom delimiters are ver easy to forget.</span></span>
+<span class="line"><span style="color:#6A737D"># Consider choosing more intuitive syntax if you plan on not checking this file every once and a while.</span></span></code></pre>
+<h3 id="rust-server">Rust Server</h3>
+<p>Now we’ll implement our Axum server using Rinja templates:</p>
+<p><code>src/main.rs</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="rust"><code><span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> axum</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#B392F0">    Router</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#B392F0">    response</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">{</span><span style="color:#B392F0">Html</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">IntoResponse</span><span style="color:#E1E4E8">},</span></span>
+<span class="line"><span style="color:#B392F0">    routing</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">get,</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> rinja_axum</span><span style="color:#F97583">::</span><span style="color:#B392F0">Template</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">use</span><span style="color:#B392F0"> tower_http</span><span style="color:#F97583">::</span><span style="color:#B392F0">services</span><span style="color:#F97583">::</span><span style="color:#B392F0">ServeDir</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[tokio</span><span style="color:#F97583">::</span><span style="color:#E1E4E8">main]</span></span>
+<span class="line"><span style="color:#F97583">async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> main</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> app </span><span style="color:#F97583">=</span><span style="color:#B392F0"> Router</span><span style="color:#F97583">::</span><span style="color:#B392F0">new</span><span style="color:#E1E4E8">()</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">route</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"/"</span><span style="color:#E1E4E8">, </span><span style="color:#B392F0">get</span><span style="color:#E1E4E8">(handler))</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">fallback_service</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">ServeDir</span><span style="color:#F97583">::</span><span style="color:#B392F0">new</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"frontend/dist"</span><span style="color:#E1E4E8">));</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">    let</span><span style="color:#E1E4E8"> listener </span><span style="color:#F97583">=</span><span style="color:#B392F0"> tokio</span><span style="color:#F97583">::</span><span style="color:#B392F0">net</span><span style="color:#F97583">::</span><span style="color:#B392F0">TcpListener</span><span style="color:#F97583">::</span><span style="color:#B392F0">bind</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"127.0.0.1:8000"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#F97583">        .await</span></span>
+<span class="line"><span style="color:#F97583">        .</span><span style="color:#B392F0">unwrap</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#B392F0">    axum</span><span style="color:#F97583">::</span><span style="color:#B392F0">serve</span><span style="color:#E1E4E8">(listener, app)</span><span style="color:#F97583">.await.</span><span style="color:#B392F0">unwrap</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">#[derive(</span><span style="color:#B392F0">Template</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#E1E4E8">#[template(path </span><span style="color:#F97583">=</span><span style="color:#9ECBFF"> "index.html"</span><span style="color:#E1E4E8">)]</span></span>
+<span class="line"><span style="color:#F97583">struct</span><span style="color:#B392F0"> NameTemplate</span><span style="color:#E1E4E8">&#x3C;'</span><span style="color:#B392F0">a</span><span style="color:#E1E4E8">> {</span></span>
+<span class="line"><span style="color:#E1E4E8">    name</span><span style="color:#F97583">:</span><span style="color:#F97583"> &#x26;</span><span style="color:#E1E4E8">'</span><span style="color:#B392F0">a</span><span style="color:#B392F0"> str</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">async</span><span style="color:#F97583"> fn</span><span style="color:#B392F0"> handler</span><span style="color:#E1E4E8">() </span><span style="color:#F97583">-></span><span style="color:#F97583"> impl</span><span style="color:#B392F0"> IntoResponse</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#B392F0">    Html</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">NameTemplate</span><span style="color:#E1E4E8"> { name</span><span style="color:#F97583">:</span><span style="color:#9ECBFF"> "Astroworld"</span><span style="color:#E1E4E8"> }</span><span style="color:#F97583">.</span><span style="color:#B392F0">render</span><span style="color:#E1E4E8">()</span><span style="color:#F97583">.</span><span style="color:#B392F0">unwrap</span><span style="color:#E1E4E8">())</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<h2 id="frontend-setup-astro">Frontend Setup (Astro)</h2>
+<p>Create a new Astro project</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">npm</span><span style="color:#9ECBFF"> create</span><span style="color:#9ECBFF"> astro@latest</span></span></code></pre>
+<p>When prompted:</p>
+<ul>
+<li>
+<p><strong>Project name:</strong> <code>frontend</code></p>
+</li>
+<li>
+<p>Accept the defaults or modify as needed.</p>
+</li>
+</ul>
+<h3 id="create-template">Create Template</h3>
+<p>Inside <code>frontend/src/pages</code>, create (if it doesn’t already exist) or edit <code>index.astro</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="astro"><code><span class="line"><span style="color:#6A737D">---</span></span>
+<span class="line"><span style="color:#F97583">import</span><span style="color:#E1E4E8"> astroLogo </span><span style="color:#F97583">from</span><span style="color:#9ECBFF"> "../assets/astro.svg"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#6A737D">---</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">&#x3C;</span><span style="color:#85E89D">div</span><span style="color:#B392F0"> id</span><span style="color:#E1E4E8">=</span><span style="color:#9ECBFF">"container"</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#E1E4E8">  &#x3C;</span><span style="color:#85E89D">main</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#E1E4E8">    &#x3C;</span><span style="color:#85E89D">section</span><span style="color:#B392F0"> id</span><span style="color:#E1E4E8">=</span><span style="color:#9ECBFF">"hero"</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#E1E4E8">      &#x3C;</span><span style="color:#85E89D">a</span><span style="color:#B392F0"> href</span><span style="color:#E1E4E8">=</span><span style="color:#9ECBFF">"https://astro.build"</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#E1E4E8">        &#x3C;</span><span style="color:#85E89D">img</span></span>
+<span class="line"><span style="color:#B392F0">          src</span><span style="color:#E1E4E8">=</span><span style="color:#9ECBFF">{astroLogo.src}</span></span>
+<span class="line"><span style="color:#B392F0">          width</span><span style="color:#E1E4E8">=</span><span style="color:#9ECBFF">"115"</span></span>
+<span class="line"><span style="color:#B392F0">          height</span><span style="color:#E1E4E8">=</span><span style="color:#9ECBFF">"48"</span></span>
+<span class="line"><span style="color:#B392F0">          alt</span><span style="color:#E1E4E8">=</span><span style="color:#9ECBFF">"Astro Homepage"</span></span>
+<span class="line"><span style="color:#E1E4E8">        /></span></span>
+<span class="line"><span style="color:#E1E4E8">      &#x3C;/</span><span style="color:#85E89D">a</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#6A737D">      &#x3C;!-- Injected variable --></span></span>
+<span class="line"><span style="color:#E1E4E8">      &#x3C;</span><span style="color:#85E89D">h1</span><span style="color:#E1E4E8">>Hello [[.name]]!&#x3C;/</span><span style="color:#85E89D">h1</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#E1E4E8">    &#x3C;/</span><span style="color:#85E89D">section</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#E1E4E8">  &#x3C;/</span><span style="color:#85E89D">main</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#E1E4E8">&#x3C;/</span><span style="color:#85E89D">div</span><span style="color:#E1E4E8">></span></span></code></pre>
+<h3 id="build-the-frontend">Build the Frontend</h3>
+<p><code>npm run dev</code> won’t work for our use case since it doesn’t build to the <code>dist/</code> directory. Instead we’ll use <code>npm run build</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#79B8FF">cd</span><span style="color:#9ECBFF"> frontend</span></span>
+<span class="line"><span style="color:#B392F0">npm</span><span style="color:#9ECBFF"> run</span><span style="color:#9ECBFF"> build</span></span>
+<span class="line"><span style="color:#79B8FF">cd</span><span style="color:#9ECBFF"> ..</span></span>
+<span class="line"><span style="color:#B392F0">cargo</span><span style="color:#9ECBFF"> run</span></span></code></pre>
+<p>Then, open your browser and navigate to:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>http://localhost:8000</span></span></code></pre>
+<p>You should see our SSR dynamic content generated
+<img alt="Injected Data Rendered" width="480" height="235" loading="lazy" decoding="async" src="/_astro/Astroworld.Cx7-lQ1P_Z1bGBRK.webp" ></p>
+<h2 id="note">Note</h2>
+<p>If you’re containerizing your project:</p>
+<ul>
+<li>Make sure to copy the <code>frontend/dist</code> directory into your Docker image.</li>
+<li>If you’re building the image using GitHub Actions, remove or comment out the <code>dist/</code> line from <code>frontend/.gitignore</code> so that the built assets are included.</li>
+</ul>
+<h2 id="conclusion">Conclusion</h2>
+<p>We now have a separate Rust backend working alongside a standalone Astro frontend. If we need more interactivity, we can easily introduce <a href="https://htmx.org/">HTMX</a> to our mix for dynamic behavior, or even integrate React directly into the Astro framework, that is if we need more dependencies and a lot of JavaScript loaded to the site.</p>
+<p>The code for this project is available on GitHub:
+<a href="https://github.com/abd0-omar/astro-rust">abd0-omar/astro-rust</a></p>
+<p>The code for the blog is available here
+<a href="https://github.com/abd0-omar/contact-form">abd0-omar/contact-form</a></p>  </div> </div> </article> </main> <footer class="footer footer-center bg-base-200 text-base-content p-10 mt-16"> <aside class="grid-flow-col items-center"> <p class="text-sm">
+&copy; 2025 talga. All rights reserved along with the
+			lefts.
+</p> </aside> <nav class="grid-flow-col gap-4"> <a href="https://github.com/abd0-omar" target="_blank" class="btn btn-ghost btn-square" aria-label="Go to talga's GitHub repo"> <svg viewBox="0 0 16 16" aria-hidden="true" class="w-6 h-6 fill-current"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg> </a> <a href="https://www.linkedin.com/in/abdelrahman-omar-739126248/" target="_blank" class="btn btn-ghost btn-square" aria-label="Go to Abdelrahman's LinkedIn profile"> <svg viewBox="0 0 24 24" aria-hidden="true" class="w-6 h-6 fill-current"> <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"></path> </svg> </a> <a href="mailto:abdelrahman.omar.elgendy@gmail.com" class="btn btn-ghost btn-square" aria-label="Send email to Abdelrahman"> <svg viewBox="0 0 24 24" aria-hidden="true" class="w-6 h-6 fill-current"> <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"></path> </svg> </a> </nav> </footer> </body></html>

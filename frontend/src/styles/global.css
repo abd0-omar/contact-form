@@ -1,0 +1,525 @@
+@import "tailwindcss";
+/* @import "nord/src/native/nord.css"; */
+/* "node_modules/nord/src/nord.css" */
+/* @import "node_modules/nord/src/sass/nord.scss"; */
+@plugin "daisyui";
+
+/* Nord color palette variables */
+:root {
+	/* Polar Night */
+	--nord0: #2e3440;
+	--nord1: #3b4252;
+	--nord2: #434c5e;
+	--nord3: #4c566a;
+
+	/* Snow Storm */
+	--nord4: #d8dee9;
+	--nord5: #e5e9f0;
+	--nord6: #eceff4;
+
+	/* Frost */
+	--nord7: #8fbcbb;
+	--nord8: #88c0d0;
+	--nord9: #81a1c1;
+	--nord10: #5e81ac;
+
+	/* Aurora */
+	--nord11: #bf616a;
+	--nord12: #d08770;
+	--nord13: #ebcb8b;
+	--nord14: #a3be8c;
+	--nord15: #b48ead;
+}
+
+@plugin "daisyui/theme" {
+	name: "nord-dark";
+	default: true;
+	prefersdark: true;
+	color-scheme: dark;
+
+	/* Base colors from Polar Night palette */
+	--color-base-100: var(--nord0);
+	/* Background */
+	--color-base-200: var(--nord1);
+	/* Elevated UI elements */
+	--color-base-300: var(--nord2);
+	/* Active line, selection */
+	--color-base-content: var(--nord4);
+	/* Text color */
+
+	/* Primary colors from Frost palette */
+	--color-primary: var(--nord8);
+	/* Primary accent */
+	--color-primary-content: var(--nord0);
+	/* Text on primary */
+	--color-primary-focus: var(--nord7);
+	/* Focus state */
+
+	/* Secondary colors from Frost palette */
+	--color-secondary: var(--nord9);
+	/* Secondary accent */
+	--color-secondary-content: var(--nord0);
+	/* Text on secondary */
+	--color-secondary-focus: var(--nord10);
+	/* Focus state */
+
+	/* Accent colors from Aurora palette */
+	--color-accent: var(--nord14);
+	/* Success/Accent */
+	--color-accent-content: var(--nord0);
+	/* Text on accent */
+	--color-accent-focus: var(--nord13);
+	/* Focus state */
+
+	/* Neutral colors from Polar Night palette */
+	--color-neutral: var(--nord3);
+	/* Subtle UI elements */
+	--color-neutral-content: var(--nord6);
+	/* Text on neutral */
+	--color-neutral-focus: var(--nord2);
+	/* Focus state */
+
+	/* Status colors from Aurora palette */
+	--color-info: var(--nord10);
+	/* Info */
+	--color-info-content: var(--nord0);
+	/* Text on info */
+	--color-success: var(--nord14);
+	/* Success */
+	--color-success-content: var(--nord0);
+	/* Text on success */
+	--color-warning: var(--nord13);
+	/* Warning */
+	--color-warning-content: var(--nord0);
+	/* Text on warning */
+	--color-error: var(--nord11);
+	/* Error */
+	--color-error-content: var(--nord0);
+	/* Text on error */
+
+	/* Border radius */
+	--radius-selector: 0.5rem;
+	--radius-field: 0.25rem;
+	--radius-box: 0.5rem;
+
+	/* Base sizes */
+	--size-selector: 0.25rem;
+	--size-field: 0.25rem;
+
+	/* Border size */
+	--border: 1px;
+
+	/* Effects */
+	--depth: 1;
+	--noise: 0;
+}
+
+/* Custom styles for Nord theme */
+[data-theme="nord-dark"] {
+
+	/* Code blocks */
+	.prose pre {
+		background-color: var(--nord1);
+		border: 1px solid var(--nord3);
+		padding: 1.5em;
+		border-radius: 8px;
+		overflow-x: auto;
+		font-family: 'JetBrains Mono', monospace;
+		color: var(--nord4);
+	}
+
+	.prose code {
+		background-color: transparent;
+		/* Remove background from inline code */
+		border: none;
+		/* Remove border from inline code */
+		color: var(--nord8);
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 0.875em;
+		padding: 0;
+	}
+
+	.prose pre>code {
+		background-color: transparent;
+		border: none;
+		padding: 0;
+	}
+
+	/* Links */
+	.prose a {
+		color: var(--nord8);
+		/* Use Frost accent for links */
+	}
+
+	.prose a:hover {
+		color: var(--nord7);
+		/* Use lighter Frost for hover */
+	}
+
+	/* Headings */
+	.prose h1,
+	.prose h2,
+	.prose h3,
+	.prose h4 {
+		color: var(--nord6);
+		/* Use brightest Snow Storm for headings */
+	}
+
+	/* Blockquotes */
+	.prose blockquote {
+		border-left-color: var(--nord3);
+		background-color: var(--nord1);
+		color: var(--nord4);
+	}
+
+	/* Tables */
+	.prose table {
+		border-color: var(--nord3);
+	}
+
+	.prose th {
+		background-color: var(--nord1);
+		border-color: var(--nord3);
+		color: var(--nord6);
+	}
+
+	.prose td {
+		border-color: var(--nord3);
+		color: var(--nord4);
+	}
+
+	/* Horizontal rule */
+	.prose hr {
+		border-color: var(--nord3);
+	}
+
+	/* Lists */
+	.prose ul {
+		list-style-type: disc;
+		padding-left: 1.5em;
+	}
+
+	.prose ul ul {
+		list-style-type: circle;
+		margin-top: 0.5em;
+		margin-bottom: 0.5em;
+	}
+
+	.prose ul ul ul {
+		list-style-type: square;
+	}
+
+	.prose ul li {
+		margin-top: 0.25em;
+		margin-bottom: 0.25em;
+	}
+
+	.prose ul li::marker {
+		color: var(--nord8);
+	}
+
+	.prose ol {
+		list-style-type: decimal;
+		padding-left: 1.5em;
+	}
+
+	.prose ol ol {
+		list-style-type: lower-alpha;
+		margin-top: 0.5em;
+		margin-bottom: 0.5em;
+	}
+
+	.prose ol ol ol {
+		list-style-type: lower-roman;
+	}
+
+	.prose ol li {
+		margin-top: 0.25em;
+		margin-bottom: 0.25em;
+	}
+
+	.prose ol li::marker {
+		color: var(--nord8);
+	}
+
+	/* Strong text */
+	.prose strong {
+		color: var(--nord6);
+	}
+
+	/* Emphasis */
+	.prose em {
+		color: var(--nord7);
+	}
+
+	/* Additional prose styles */
+	.prose {
+		/* Better line height for readability */
+		line-height: 1.8;
+	}
+
+	/* Better spacing for paragraphs */
+	.prose p {
+		margin-top: 1.25em;
+		margin-bottom: 1.25em;
+	}
+
+	/* Better table styles */
+	.prose table {
+		width: 100%;
+		margin-top: 2em;
+		margin-bottom: 2em;
+		border-collapse: collapse;
+	}
+
+	.prose th,
+	.prose td {
+		padding: 0.75em;
+		border: 1px solid var(--nord3);
+	}
+
+	/* Better blockquote styles */
+	.prose blockquote {
+		padding: 1em 1.5em;
+		margin: 1.5em 0;
+		border-radius: 0.5em;
+	}
+
+	/* Better image styles */
+	.prose img {
+		margin: 2em auto;
+		max-width: 100%;
+		height: auto;
+	}
+
+	/* Better code block styles */
+	.prose pre {
+		margin: 1.5em 0;
+		padding: 1.25em;
+		border-radius: 0.5em;
+		font-size: 0.95em;
+	}
+
+	/* Better inline code styles */
+	.prose code {
+		padding: 0.2em 0.4em;
+		border-radius: 0.25em;
+		font-size: 0.9em;
+	}
+
+	/* Better list styles */
+	.prose ul,
+	.prose ol {
+		margin-top: 1.25em;
+		margin-bottom: 1.25em;
+	}
+
+	.prose li {
+		margin-top: 0.5em;
+		margin-bottom: 0.5em;
+	}
+
+	/* Better horizontal rule */
+	.prose hr {
+		margin: 3em 0;
+		border: 0;
+		border-top: 2px solid var(--nord3);
+	}
+
+	/* Better definition list styles */
+	.prose dl {
+		margin-top: 1.25em;
+		margin-bottom: 1.25em;
+	}
+
+	.prose dt {
+		font-weight: 600;
+		color: var(--nord6);
+	}
+
+	.prose dd {
+		margin-top: 0.5em;
+		margin-bottom: 1.25em;
+		padding-left: 1.5em;
+	}
+}
+
+/* Base styles */
+:root {
+	--font-sans: var(--md-text-font), system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+	--font-mono: var(--md-code-font), monospace;
+}
+
+body {
+	font-family: var(--font-sans);
+	font-size: 16px;
+	line-height: 1.6;
+	font-weight: 400;
+	background-color: #242933 !important;
+	/* Set the outer background color */
+}
+
+/* Typography */
+h1 {
+	font-size: 32px;
+	font-weight: 700;
+	line-height: 1.3;
+	margin-bottom: 1rem;
+}
+
+h2 {
+	font-size: 25px;
+	font-weight: 700;
+	line-height: 1.4;
+	margin-bottom: 0.75rem;
+}
+
+h3 {
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 1.4;
+	margin-bottom: 0.5rem;
+}
+
+h4 {
+	font-size: 18px;
+	font-weight: 700;
+	line-height: 1.4;
+	margin-bottom: 0.5rem;
+}
+
+p,
+li,
+a {
+	font-size: 16px;
+	line-height: 1.6;
+}
+
+/* Code blocks */
+code,
+pre {
+	font-family: var(--font-mono);
+	font-size: 14px;
+	line-height: 1.6;
+}
+
+.prose {
+	font-family: var(--font-sans);
+}
+
+.prose h1 {
+	font-size: 32px;
+	font-weight: 700;
+	margin-top: 2rem;
+	margin-bottom: 1rem;
+}
+
+.prose h2 {
+	font-size: 25px;
+	font-weight: 700;
+	margin-top: 1.75rem;
+	margin-bottom: 0.75rem;
+}
+
+.prose h3 {
+	font-size: 20px;
+	font-weight: 700;
+	margin-top: 1.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.prose h4 {
+	font-size: 18px;
+	font-weight: 700;
+	margin-top: 1.25rem;
+	margin-bottom: 0.5rem;
+}
+
+.prose p,
+.prose li,
+.prose a {
+	font-size: 16px;
+	line-height: 1.6;
+	margin-bottom: 1rem;
+}
+
+.prose code {
+	font-family: 'JetBrains Mono', monospace;
+	padding: 2px 6px;
+	background-color: transparent;
+	color: var(--nord8);
+	border-radius: 4px;
+	font-size: 0.875em;
+}
+
+.prose pre {
+	padding: 1.5em;
+	border-radius: 8px;
+	background-color: var(--nord1);
+	color: var(--nord4);
+	overflow-x: auto;
+	font-family: 'JetBrains Mono', monospace;
+}
+
+.prose pre>code {
+	all: unset;
+	font-family: inherit;
+	background-color: transparent;
+}
+
+/* Content styling for markdown/prose */
+.prose {
+	max-width: 100%;
+	color: var(--tw-prose-body);
+}
+
+.prose-lg {
+	max-width: 100%;
+}
+
+.prose :where(h1, h2, h3, h4):not(:where([class~="not-prose"] *)) {
+	color: hsl(var(--p));
+}
+
+/* Remove duplicate code block styling */
+/* Images in content */
+.prose img {
+	border-radius: 8px;
+	box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+/* Accessibility helper */
+.sr-only {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* Responsive typography */
+@media (max-width: 640px) {
+	.prose {
+		font-size: 0.95em;
+	}
+
+	.prose h1 {
+		font-size: 1.8em;
+	}
+
+	.prose h2 {
+		font-size: 1.5em;
+	}
+
+	.prose h3 {
+		font-size: 1.25em;
+	}
+
+	.prose h4 {
+		font-size: 1.1em;
+	}
+}

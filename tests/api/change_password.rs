@@ -63,8 +63,7 @@ async fn new_password_fields_must_match() {
     // Act - Part 3 - Follow the redirect
     let html_page = app.get_change_password_html().await;
     assert!(html_page.contains(
-        "<p class=\"text-[#ff6b6b]\"><i>You entered two different new passwords - \
-         the field values must match.</i></p>"
+        "<p><i>You entered two different new passwords - the field values must match.</i></p>"
     ));
 
     app.cleanup_test_db().await.unwrap()
@@ -98,8 +97,7 @@ async fn current_password_must_be_valid() {
 
     // Act - Part 3 - Follow the redirect
     let html_page = app.get_change_password_html().await;
-    assert!(html_page
-        .contains("<p class=\"text-[#ff6b6b]\"><i>The current password is incorrect.</i></p>"));
+    assert!(html_page.contains("<p><i>The current password is incorrect.</i></p>"));
 
     app.cleanup_test_db().await.unwrap()
 }
@@ -130,8 +128,7 @@ async fn changing_password_works() {
 
     // Act - Part 3 - Follow the redirect
     let html_page = app.get_change_password_html().await;
-    assert!(html_page
-        .contains("<p class=\"text-[#ff6b6b]\"><i>Your password has been changed.</i></p>"));
+    assert!(html_page.contains("<p><i>Your password has been changed.</i></p>"));
 
     // Act - Part 4 - Logout
     let response = app.post_logout().await;

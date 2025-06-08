@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "frontend_blog2",
   "type": "module",
   "version": "0.0.1",
   "scripts": {
@@ -9,16 +9,17 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/markdown-remark": "^6.3.2",
-    "@astrojs/tailwind": "^6.0.2",
-    "@tabler/icons": "^3.34.0",
-    "@tailwindcss/forms": "^0.5.10",
-    "@tailwindcss/postcss": "^4.1.8",
-    "@tailwindcss/typography": "^0.5.16",
+    "@astrojs/mdx": "^4.3.0",
+    "@astrojs/rss": "^4.0.12",
+    "@astrojs/sitemap": "^3.4.1",
     "@tailwindcss/vite": "^4.1.8",
     "astro": "^5.9.1",
-    "tailwind-variants": "^1.0.0",
-    "tailwindcss": "^4.1.8",
-    "tw-animate-css": "^1.3.4"
+    "nord": "^0.2.1",
+    "sharp": "^0.34.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.8",
+    "daisyui": "^5.0.43",
+    "tailwindcss": "^4.1.8"
   }
 }

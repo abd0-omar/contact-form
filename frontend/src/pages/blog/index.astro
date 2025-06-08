@@ -1,57 +1,72 @@
 ---
-import Layout from "@/layouts/Layout.astro";
-import {
-    Card,
-    CardHeader,
-    CardTitle,
-    CardDescription,
-    CardContent,
-} from "@/components/starwind/card";
+import BaseHead from "../../components/BaseHead.astro";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+import { SITE_TITLE, SITE_DESCRIPTION } from "../../consts";
 import { getCollection } from "astro:content";
+import FormattedDate from "../../components/FormattedDate.astro";
+import { Image } from "astro:assets";
 
-// Get all blog posts
-const posts = await getCollection("blog");
-
-// Sort posts by date
-const sortedPosts = posts.sort((a, b) => {
-    return new Date(b.data.date).getTime() - new Date(a.data.date).getTime();
-});
+const posts = (await getCollection("blog")).sort(
+	(a, b) => b.data.pubDate!.valueOf() - a.data.pubDate!.valueOf(),
+);
 ---
 
-<Layout>
-    <section class="py-20 container mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="max-w-4xl mx-auto">
-            <h1 class="text-4xl font-bold text-[#b0b0b0] mb-8">Blog Posts</h1>
+<!doctype html>
+<html lang="en" data-theme="nord-dark">
+	<head>
+		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+	</head>
+	<body class="bg-base-100 text-base-content">
+		<Header />
+		<main class="container mx-auto max-w-3xl px-4 py-10">
+			<div class="text-center mb-10">
+				<h1 class="text-4xl md:text-5xl font-bold text-primary">
+					Blog Posts
+				</h1>
+				<div class="divider divider-primary w-1/2 mx-auto"></div>
+			</div>
 
-            <div class="grid gap-6">
-                {
-                    sortedPosts.map((post) => (
-                        <Card class="bg-[#000000] border-[#1a1a1a] hover:border-[#2a2a2a] transition-colors">
-                            <a href={`/blog/${post.slug}`} class="block">
-                                <CardHeader>
-                                    <CardTitle class="text-[#b0b0b0] hover:text-[#c0c0c0] transition-colors">
-                                        {post.data.title}
-                                    </CardTitle>
-                                    <CardDescription class="text-[#a0a0a0]">
-                                        {new Date(
-                                            post.data.date,
-                                        ).toLocaleDateString("en-US", {
-                                            year: "numeric",
-                                            month: "long",
-                                            day: "numeric",
-                                        })}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <p class="text-[#a0a0a0]">
-                                        {post.data.description}
-                                    </p>
-                                </CardContent>
-                            </a>
-                        </Card>
-                    ))
-                }
-            </div>
-        </div>
-    </section>
-</Layout>
+			<section>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					{
+						posts.map((post, index) => (
+							<a
+								href={`/blog/${post.id}/`}
+								class={`card card-compact bg-base-100 shadow-lg hover:shadow-xl transition-shadow`}
+							>
+								<figure class="relative">
+									{post.data.heroImage && (
+										<Image
+											width={720}
+											height={360}
+											src={post.data.heroImage}
+											alt=""
+											class="w-full h-56 md:h-72 object-cover"
+										/>
+									)}
+								</figure>
+								<div class="card-body">
+									<h2 class="card-title text-2xl">
+										{post.data.title}
+									</h2>
+									<div class="flex items-center gap-2">
+										<div class="badge badge-primary">
+											<FormattedDate
+												date={
+													post.data.pubDate ??
+													new Date()
+												}
+											/>
+										</div>
+									</div>
+								</div>
+							</a>
+						))
+					}
+				</div>
+			</section>
+		</main>
+		<Footer />
+	</body>
+</html>

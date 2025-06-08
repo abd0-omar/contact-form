@@ -1,63 +1,65 @@
 ---
-import Layout from "../layouts/Layout.astro";
-import "@/styles/starwind.css";
-import { Input } from "@/components/starwind/input";
-import { Button } from "@/components/starwind/button";
-import { Label } from "@/components/starwind/label";
-import { Card } from "@/components/starwind/card";
+import BaseHead from "../components/BaseHead.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
 ---
 
-<Layout>
-    <div class="max-w-md mx-auto">
-        <Card class="bg-[#0a0a0a] border-[#1a1a1a]">
-            <div class="p-6">
-                <h1 class="text-2xl font-bold text-[#b0b0b0] mb-6">
-                    Login to Newzletter
-                </h1>
-                %% if errors.len() > 0 %%
-                <div
-                    class="mb-4 p-3 bg-[#1a1a1a] border border-[#333333] rounded text-[#b0b0b0]"
-                >
-                    %% for error in errors %%
-                    <p><i>[[.error]]</i></p>
-                    %% endfor %%
+<html lang="en" data-theme="nord-dark">
+    <head>
+        <BaseHead
+            title="Login - Newzletter"
+            description="Login to your Newzletter account"
+        />
+    </head>
+    <body class="bg-base-100 text-base-content">
+        <Header />
+        <main class="container mx-auto max-w-md px-4 py-8">
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body">
+                    <h1 class="card-title text-2xl font-bold text-primary mb-6">
+                        Login to Newzletter
+                    </h1>
+                    %% if errors.len() > 0 %%
+                    <div class="alert alert-error">
+                        %% for error in errors %%
+                        <p><i>[[.error]]</i></p>
+                        %% endfor %%
+                    </div>
+                    %% endif %%
+                    <form action="/login" method="post" class="space-y-4">
+                        <div class="form-control">
+                            <label class="label" for="username">
+                                <span class="label-text">Username</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                placeholder="Enter your username"
+                                required
+                                class="input input-bordered w-full"
+                            />
+                        </div>
+                        <div class="form-control">
+                            <label class="label" for="password">
+                                <span class="label-text">Password</span>
+                            </label>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Enter your password"
+                                required
+                                class="input input-bordered w-full"
+                            />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full">
+                            Login
+                        </button>
+                    </form>
                 </div>
-                %% endif %%
-                <form action="/login" method="post" class="space-y-4">
-                    <div class="space-y-2">
-                        <Label for="username" class="text-[#a0a0a0]"
-                            >Username</Label
-                        >
-                        <Input
-                            id="username"
-                            name="username"
-                            type="text"
-                            placeholder="Enter your username"
-                            required
-                            class="bg-[#000000] border-[#1a1a1a] text-[#b0b0b0] placeholder-[#666666] focus:border-[#b0b0b0]"
-                        />
-                    </div>
-                    <div class="space-y-2">
-                        <Label for="password" class="text-[#a0a0a0]"
-                            >Password</Label
-                        >
-                        <Input
-                            id="password"
-                            name="password"
-                            type="password"
-                            placeholder="Enter your password"
-                            required
-                            class="bg-[#000000] border-[#1a1a1a] text-[#b0b0b0] placeholder-[#666666] focus:border-[#b0b0b0]"
-                        />
-                    </div>
-                    <Button
-                        type="submit"
-                        class="w-full bg-[#000000] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#c0c0c0] hover:text-[#000000] transition-colors"
-                    >
-                        Login
-                    </Button>
-                </form>
             </div>
-        </Card>
-    </div>
-</Layout>
+        </main>
+        <Footer />
+    </body>
+</html>

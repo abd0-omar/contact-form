@@ -1,61 +1,61 @@
 ---
-import Layout from "../layouts/Layout.astro";
-import "@/styles/starwind.css";
-import { Button } from "@/components/starwind/button";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/starwind/card";
+import BaseHead from "../components/BaseHead.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
 ---
 
-<Layout>
-    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card class="bg-[#0a0a0a] border-[#1a1a1a] max-w-2xl mx-auto">
-            <CardHeader>
-                <CardTitle class="text-2xl font-bold text-[#b0b0b0]">
-                    Welcome [[.username]]!
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div class="space-y-6">
-                    <div>
-                        <h2 class="text-xl font-semibold text-[#b0b0b0] mb-4">
-                            Available Actions
-                        </h2>
-                        <div class="space-y-4">
-                            <a href="/admin/newsletters">
-                                <Button
-                                    class="w-full bg-[#000000] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#c0c0c0] hover:text-[#000000] transition-colors"
+<html lang="en" data-theme="nord-dark">
+    <head>
+        <BaseHead
+            title="Dashboard - Newzletter"
+            description="Newzletter admin dashboard"
+        />
+    </head>
+    <body class="bg-base-100 text-base-content">
+        <Header />
+        <main class="container mx-auto px-4 py-8">
+            <div class="card bg-base-200 shadow-xl max-w-2xl mx-auto">
+                <div class="card-body">
+                    <h1 class="card-title text-2xl font-bold text-primary mb-6">
+                        Welcome [[.username]]!
+                    </h1>
+                    <div class="space-y-6">
+                        <div>
+                            <h2 class="text-xl font-semibold text-primary mb-4">
+                                Available Actions
+                            </h2>
+                            <div class="space-y-4">
+                                <a
+                                    href="/admin/newsletters"
+                                    class="btn btn-primary w-full"
                                 >
                                     Publish Newsletter
-                                </Button>
-                            </a>
-                            <a href="/admin/password">
-                                <Button
-                                    class="w-full bg-[#000000] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#c0c0c0] hover:text-[#000000] transition-colors"
+                                </a>
+                                <a
+                                    href="/admin/password"
+                                    class="btn btn-secondary w-full"
                                 >
                                     Change Password
-                                </Button>
-                            </a>
-                            <form
-                                name="logoutForm"
-                                action="/admin/logout"
-                                method="post"
-                                class="w-full"
-                            >
-                                <Button
-                                    type="submit"
-                                    class="w-full bg-[#000000] text-[#b0b0b0] border border-[#1a1a1a] hover:bg-[#c0c0c0] hover:text-[#000000] transition-colors"
+                                </a>
+                                <form
+                                    name="logoutForm"
+                                    action="/admin/logout"
+                                    method="post"
+                                    class="w-full"
                                 >
-                                    Logout
-                                </Button>
-                            </form>
+                                    <button
+                                        type="submit"
+                                        class="btn btn-error w-full"
+                                    >
+                                        Logout
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </CardContent>
-        </Card>
-    </div>
-</Layout>
+            </div>
+        </main>
+        <Footer />
+    </body>
+</html>
