@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::{fs, path::PathBuf, sync::Arc};
 
 use anyhow::Context;
 use axum::{
     extract::{Query, State},
-    response::IntoResponse,
+    response::{Html, IntoResponse},
 };
 use reqwest::StatusCode;
 use sqlx::SqlitePool;
@@ -65,7 +65,15 @@ pub async fn confirm(
         .await
         .context("Failed to update the subscriber status to `confirmed`.")?;
 
-    Ok(StatusCode::OK)
+    let confirm_email_page_path = PathBuf::from("frontend/dist/email-confirmed/index.html");
+    match fs::read_to_string(confirm_email_page_path) {
+        Ok(content) => Ok(Html(content).into_response()),
+        Err(_) => Ok((
+            axum::http::StatusCode::NOT_FOUND,
+            "Confirmation email page not found",
+        )
+            .into_response()),
+    }
 }
 
 #[tracing::instrument(name = "Mark subscriber as confirmed", skip(subscriber_id, pool))]

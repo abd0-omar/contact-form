@@ -7,7 +7,8 @@ heroImage: '../../assets/Astro x Rust.jpg'
 # Integrating Rust with Astro Using Rinja
 This post is fully inspired by [go-templates-with-astro](https://www.wingravity.com/blog/go-templates-with-astro).
 
-We'll walk through how to integrate a Rust backend (using Axum) with Astro frontend, leveraging the [Rinja](https://rinja.readthedocs.io/) templating engine with custom syntax to avoid conflicts.
+
+We'll walk through how to inject data from Rust to [Astro](https://astro.build) with the help of [Rinja](https://rinja.readthedocs.io/) templating engine.
 
 ## Prerequisites
 

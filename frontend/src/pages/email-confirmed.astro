@@ -1,0 +1,78 @@
+---
+import BaseHead from "../components/BaseHead.astro";
+import { SITE_TITLE } from "../consts";
+---
+
+<!doctype html>
+<html lang="en" data-theme="nord-dark">
+    <head>
+        <BaseHead
+            title={`Email Confirmed - ${SITE_TITLE}`}
+            description="Your email has been successfully confirmed for our newsletter."
+        />
+    </head>
+    <body class="bg-base-100 text-base-content min-h-screen flex flex-col">
+        <main
+            class="container mx-auto max-w-3xl px-4 py-10 flex items-center justify-center flex-1"
+        >
+            <div class="card bg-base-100 shadow-lg w-full max-w-md mx-auto">
+                <div class="card-body p-4 sm:p-6">
+                    <div class="text-center mb-4">
+                        <div
+                            class="w-24 h-24 mx-auto bg-success rounded-full flex items-center justify-center mb-4"
+                        >
+                            <svg
+                                class="w-12 h-12 text-success-content"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <h1 class="text-4xl font-bold text-base-content mb-4">
+                            Email Confirmed!
+                        </h1>
+                        <p class="text-lg text-base-content opacity-70">
+                            Your email address has been successfully confirmed.
+                            You're now subscribed to our newsletter and will
+                            receive updates directly to your inbox.
+                        </p>
+                    </div>
+                    <div class="text-center text-base-content">
+                        <div
+                            class="alert alert-error shadow-lg border
+                            border-error"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                class="stroke-current shrink-0 h-6 w-6"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                ></path>
+                            </svg>
+                            <span class="font-bold">
+                                <span class="text-lg">SMALL NOTICE!</span>
+                                <br />
+                                Once you are subscribed you can't leave. You are
+                                basically in a hostage situation, until I add an
+                                unsubscribe button, or you block me, whatever suits
+                                you.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>
