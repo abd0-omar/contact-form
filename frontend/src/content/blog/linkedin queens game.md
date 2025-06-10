@@ -9,4 +9,9 @@ heroImage: '../../assets/linkedin_queens.jpg'
 
 [GitHub Link](https://github.com/abd0-omar/linkedin_queens)
 
+# Contribution solution button with extra features to other repo
+![LinkedIn Queens Cotribution](../../assets/linkedin_queens_contribution_demo.gif)
+
+[Contribution PR](https://github.com/samimsu/queens-game-linkedin/pull/678)
+
 the project is a work in progrss
