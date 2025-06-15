@@ -1,0 +1,42 @@
+---
+import BaseHead from "../components/BaseHead.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import { SITE_TITLE } from "../consts";
+---
+
+<!doctype html>
+<html lang="en" data-theme="nord-dark">
+    <head>
+        <BaseHead
+            title={`Ice Cube - ${SITE_TITLE}`}
+            description="Ice Cube GIF"
+        />
+    </head>
+    <body class="bg-base-100 text-base-content">
+        <Header />
+        <main class="container mx-auto max-w-3xl px-4 py-10">
+            <div class="card bg-base-100 shadow-lg w-full">
+                <div class="card-body p-4 sm:p-6 text-center">
+                    <h1 class="text-3xl font-bold text-primary mb-8">
+                        🧊 Ice Cube 🧊
+                    </h1>
+
+                    <div class="flex justify-center">
+                        <img
+                            src="/what-icecube.gif"
+                            alt="Ice Cube GIF"
+                            class="max-w-full h-auto rounded-lg shadow-lg"
+                            style="min-width: 300px; max-width: 500px; width: 100%;"
+                        />
+                    </div>
+
+                    <div class="mt-8">
+                        <a href="/" class="btn btn-primary"> ← Back to Home </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <Footer />
+    </body>
+</html>
