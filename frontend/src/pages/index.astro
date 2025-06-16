@@ -3,6 +3,31 @@ import BaseHead from "../components/BaseHead.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import { SITE_TITLE, SITE_DESCRIPTION } from "../consts";
+
+// Fetch a random XKCD comic
+async function getRandomXkcd() {
+	try {
+		// First get the latest comic number
+		const latestResponse = await fetch("https://xkcd.com/info.0.json");
+		const latest = await latestResponse.json();
+
+		// Generate a random comic number between 1 and the latest
+		const randomNum = Math.floor(Math.random() * latest.num) + 1;
+
+		// Fetch the random comic
+		const comicResponse = await fetch(
+			`https://xkcd.com/${randomNum}/info.0.json`,
+		);
+		const comic = await comicResponse.json();
+
+		return comic;
+	} catch (error) {
+		console.error("Error fetching XKCD comic:", error);
+		return null;
+	}
+}
+
+const xkcdComic = await getRandomXkcd();
 ---
 
 <!doctype html>
@@ -10,20 +35,183 @@ import { SITE_TITLE, SITE_DESCRIPTION } from "../consts";
 	<head>
 		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
 	</head>
-	<body class="bg-base-100 text-base-content">
+	<body class="min-h-screen bg-base-100">
 		<Header />
-		<main class="container mx-auto max-w-3xl px-4 py-10">
-			<div class="card bg-base-100 shadow-lg w-full">
-				<div class="card-body p-4 sm:p-6">
-					<h1
-						class="text-4xl md:text-5xl font-bold text-primary mb-8 text-center"
-					>
-						Hello!
+		
+		<!-- Hero Section -->
+		<div class="hero min-h-96 bg-base-200">
+			<div class="hero-content text-center">
+				<div class="max-w-md">
+					<h1 class="text-5xl font-bold text-primary mb-6">
+						Welcome!
 					</h1>
 				</div>
 			</div>
-		</main>
+		</div>
 
+		<main class="container mx-auto max-w-6xl px-4 py-12">
+
+			<!-- Random XKCD Comic Section -->
+			{
+				xkcdComic && (
+					<div class="divider text-lg font-semibold">Random Comic</div>
+					<div class="card bg-base-100 shadow-xl border border-base-300">
+						<div class="card-body">
+							<div class="flex items-center justify-between mb-6">
+								<h2 class="card-title text-2xl text-primary">
+									Random XKCD Comic
+								</h2>
+								<div class="badge badge-outline badge-lg">
+									#{xkcdComic.num}
+								</div>
+							</div>
+							
+							<div class="text-center">
+								<h3 class="text-xl font-bold mb-4 text-secondary">
+									{xkcdComic.title}
+								</h3>
+								
+								<div class="mockup-browser bg-base-300 border border-base-300 mb-6">
+									<div class="mockup-browser-toolbar">
+										<div class="input text-sm">xkcd.com/{xkcdComic.num}</div>
+									</div>
+									<div class="bg-base-100 px-6 py-8">
+										<img
+											src={xkcdComic.img}
+											alt={xkcdComic.alt}
+											class="mx-auto max-w-full h-auto"
+											loading="lazy"
+										/>
+									</div>
+								</div>
+								
+								<div class="alert alert-info shadow-lg mb-6">
+									<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+									</svg>
+									<div class="text-left">
+										<h4 class="font-semibold">Alt Text:</h4>
+										<p class="text-sm">{xkcdComic.alt}</p>
+									</div>
+								</div>
+								
+								<div class="card-actions justify-center">
+									<div class="join">
+										<div class="tooltip" data-tip="Published Date">
+											<button class="btn join-item btn-outline btn-sm">
+												📅 {xkcdComic.day}/{xkcdComic.month}/{xkcdComic.year}
+											</button>
+										</div>
+										<a
+											href={`https://xkcd.com/${xkcdComic.num}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="btn join-item btn-primary btn-sm"
+										>
+											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-4 h-4 stroke-current">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+											</svg>
+											View on XKCD
+										</a>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				)
+			}
+
+			<!-- Newsletter Signup Section -->
+			<div class="divider text-lg font-semibold mt-16">Newsletter</div>
+			<div class="card bg-gradient-to-r from-primary to-secondary text-primary-content shadow-xl">
+				<div class="card-body">
+					<div class="text-center mb-2">
+						<h2 class="card-title text-3xl justify-center mb-4">
+							📧 Built by following the Zero To Production in Rust book
+						</h2>
+						<p class="text-lg text-primary-content/90 mb-4">
+							This newsletter was created as a learning project to
+							explore Rust and backend development. It is included
+							here only as a showcase.
+						</p>
+						<!-- Subtle Info Notice -->
+						<div class="bg-primary-content/10 rounded-lg p-3 mb-2">
+							<div class="flex items-center justify-center gap-2">
+								<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-primary-content/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+								</svg>
+								<div class="text-base text-primary-content/80">
+									<span class="font-semibold">Currently
+									unavailable:</span> Subscriptions are
+									temporarily paused for bots spam protection.
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Subscription Form -->
+					<form
+						action="/subscriptions"
+						method="post"
+						class="space-y-6 opacity-50 pointer-events-none"
+					>
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+							<div class="form-control">
+								<label class="label" for="name">
+									<span class="label-text text-primary-content font-semibold">
+										<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+										</svg>
+										Your Name
+									</span>
+								</label>
+								<input
+									type="text"
+									id="name"
+									name="name"
+									placeholder="Enter your full name"
+									required
+									disabled
+									class="input input-bordered input-lg w-full bg-base-100 text-base-content"
+								/>
+							</div>
+							
+							<div class="form-control">
+								<label class="label" for="email">
+									<span class="label-text text-primary-content font-semibold">
+										<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v10a2 2 0 002 2z" />
+										</svg>
+										Email Address
+									</span>
+								</label>
+								<input
+									type="email"
+									id="email"
+									name="email"
+									placeholder="your.email@example.com"
+									required
+									disabled
+									class="input input-bordered input-lg w-full bg-base-100 text-base-content"
+								/>
+							</div>
+						</div>
+
+						<div class="card-actions justify-center">
+							<button
+								type="submit"
+								class="btn btn-neutral btn-lg w-full md:w-auto px-12 opacity-50 cursor-not-allowed"
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+								</svg>
+								Subscribe (Temporarily Disabled)
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</main>
 		<Footer />
 	</body>
 </html>
