@@ -504,6 +504,8 @@ pre {
 	border: 0;
 }
 
+/* Smooth scrolling for better UX - moved to component for better organization */
+
 /* Responsive typography */
 @media (max-width: 640px) {
 	.prose {
