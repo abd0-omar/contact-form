@@ -126,9 +126,8 @@ CREATE TABLE repository (
 ```
 
 This approach moves validation logic out of your application and into the schema
-itself, leading to a more robust system.
-I hope this helps you understand arc relationships and how to enforce XOR fields
-in SurrealDB.
+itself, so the database becomes the single source of truth.
 
-If you want to learn more about SurrealDB, you can check out the official
+I hope this helps you understand arc relationships and how to enforce XOR fields
+in SurrealDB. If you want to learn more about SurrealDB, you can check out the official
 documentation [here](https://surrealdb.com/docs/surrealdb).
