@@ -18,18 +18,17 @@ const tocHeadings = headings.filter((h) => h.depth >= 2 && h.depth <= 4);
             aria-label="Table of Contents"
         >
             <div class="bg-base-200 rounded-box border border-base-300 shadow-xl p-2 backdrop-blur-sm">
-                <ul class="space-y-1 text-xs" id="toc-list">
+                <ul class="space-y-1 text-xs">
                     {tocHeadings.map((heading) => (
                         <li
                             class={`${heading.depth === 2 ? "pl-0" : heading.depth === 3 ? "pl-1" : "pl-2"}`}
                         >
                             <a
                                 href={`#${heading.slug}`}
-                                data-heading-id={heading.slug}
                                 class="toc-link group block py-1 px-1.5 rounded transition-all duration-200 ease-out
-                               text-base-content/70 hover:text-primary hover:bg-base-300/30
-                               border-l-2 border-transparent hover:border-primary/40
-                               text-xs leading-tight relative overflow-hidden"
+                                       text-base-content/70 hover:text-primary hover:bg-base-300/30
+                                       border-l-2 border-transparent hover:border-primary/40
+                                       text-xs leading-tight relative overflow-hidden"
                             >
                                 {heading.text}
                             </a>
@@ -42,18 +41,6 @@ const tocHeadings = headings.filter((h) => h.depth >= 2 && h.depth <= 4);
 }
 
 <style>
-    .article-nav {
-        scroll-target-group: auto;
-    }
-
-    .article-nav a:target-current {
-        color: hsl(var(--p));
-        background-color: hsl(var(--p) / 0.1);
-        border-left-color: hsl(var(--p));
-        font-weight: 600;
-        transform: translateX(2px);
-    }
-
     /* Smooth scrolling behavior */
     html {
         scroll-behavior: smooth;
@@ -66,14 +53,6 @@ const tocHeadings = headings.filter((h) => h.depth >= 2 && h.depth <= 4);
     :global(.prose h5),
     :global(.prose h6) {
         scroll-margin-top: 6rem;
-    }
-
-    /* Progressive enhancement - show on all browsers with JavaScript fallback */
-    @supports not (scroll-target-group: auto) {
-        /* JavaScript fallback active state */
-        .article-nav a:target-current {
-            display: none; /* CSS version won't work */
-        }
     }
 
     /* Enhanced backdrop blur effect with better opacity */
@@ -115,103 +94,4 @@ const tocHeadings = headings.filter((h) => h.depth >= 2 && h.depth <= 4);
     .article-nav a:hover::before {
         background: hsl(var(--p) / 0.3);
     }
-
-    /* JavaScript-based active state (works on all browsers) */
-    .toc-link.active {
-        color: hsl(var(--p)) !important;
-        background-color: hsl(var(--p) / 0.08) !important;
-        border-left-color: hsl(var(--p)) !important;
-        border-left-width: 3px !important;
-        font-weight: 600 !important;
-        transform: translateX(4px) !important;
-        box-shadow:
-            inset 3px 0 0 hsl(var(--p)),
-            0 2px 8px hsl(var(--p) / 0.1) !important;
-    }
-
-    .toc-link.active::before {
-        background: hsl(var(--p)) !important;
-        width: 3px !important;
-        box-shadow: 0 0 8px hsl(var(--p) / 0.3) !important;
-    }
 </style>
-
-<script>
-    // Scroll spy functionality for all browsers
-    function initScrollSpy() {
-        const tocLinks = document.querySelectorAll(".toc-link");
-        const headings = Array.from(tocLinks)
-            .map((link) => {
-                const id = link.getAttribute("data-heading-id");
-                return id ? document.getElementById(id) : null;
-            })
-            .filter(Boolean);
-
-        if (headings.length === 0) return;
-
-        function updateActiveLink() {
-            let activeIndex = -1;
-            const scrollPosition = window.scrollY + 100; // Offset for better UX
-
-            // Check if we're at the bottom of the page
-            const isAtBottom =
-                window.innerHeight + window.scrollY >=
-                document.documentElement.scrollHeight - 50;
-
-            if (isAtBottom && headings.length > 0) {
-                // If at bottom, activate the last heading
-                activeIndex = headings.length - 1;
-            } else {
-                // Find the current heading based on scroll position
-                for (let i = headings.length - 1; i >= 0; i--) {
-                    const heading = headings[i];
-                    if (heading && heading.offsetTop <= scrollPosition) {
-                        activeIndex = i;
-                        break;
-                    }
-                }
-            }
-
-            // Update active states
-            tocLinks.forEach((link, index) => {
-                if (index === activeIndex) {
-                    link.classList.add("active");
-                } else {
-                    link.classList.remove("active");
-                }
-            });
-        }
-
-        // Throttled scroll handler for performance
-        let ticking = false;
-        function handleScroll() {
-            if (!ticking) {
-                requestAnimationFrame(() => {
-                    updateActiveLink();
-                    ticking = false;
-                });
-                ticking = true;
-            }
-        }
-
-        // Initialize and set up listeners
-        window.addEventListener("scroll", handleScroll, { passive: true });
-        window.addEventListener("resize", updateActiveLink, { passive: true });
-
-        // Initial call
-        updateActiveLink();
-
-        // Clean up on page unload
-        window.addEventListener("beforeunload", () => {
-            window.removeEventListener("scroll", handleScroll);
-            window.removeEventListener("resize", updateActiveLink);
-        });
-    }
-
-    // Initialize when DOM is ready
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initScrollSpy);
-    } else {
-        initScrollSpy();
-    }
-</script>
