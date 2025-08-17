@@ -41,6 +41,7 @@ DEFINE FIELD user ON repository TYPE option<record<user>>;
 DEFINE FIELD organization ON repository TYPE option<record<organization>>;
 ```
 
+
 ### Defining the XOR check
 ```sql
 -- Fields in surrealdb are represented as a key-value pair
@@ -90,7 +91,22 @@ CREATE repository SET
 -- Throws: 'An error occurred: a repository requires either a user or an organization owner'
 ```
 
-you can play around with it more by copying and pasting the code into [Surrealist](https://app.surrealdb.com/c/sandbox/query).
+you can play around with it more by copying and pasting the code into
+[Surrealist](https://app.surrealdb.com/c/sandbox/query).
+
+## SurrealDB Cleaner Solution
+
+A more cleaner way approach was suggested by `jimpex` on [surrealdb discord](https://discord.com/channels/902568124350599239/970338835990974484/1406455766952444038).
+
+```sql
+DEFINE FIELD owner ON repository TYPE record<user | organization>;
+DEFINE FIELD owner_type ON repository VALUE meta::tb(owner); 
+
+CREATE ONLY repository SET owner = user:andy;
+CREATE ONLY repository SET owner = organization:dunder_mifflin;
+CREATE ONLY repository SET owner = fail:test;
+```
+![jimpex from surrealdb discord cleaner solution](../../assets/image-surrealdb-jimpex.png)
 
 ## SQL
 For those coming from a relational background, this same logic is typically
