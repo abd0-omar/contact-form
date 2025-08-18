@@ -55,12 +55,11 @@ DEFINE FIELD owner_type ON repository VALUE {
     ELSE IF user != NONE AND organization != NONE {
         THROW "a repository cannot have both a user and an organization owner";
     };
-
     -- 3. (Optional) If validation passes, return the owner type
-    IF user != NONE {
-        RETURN 'user';
+    RETURN IF user != NONE {
+        'user';
     } ELSE {
-        RETURN 'organization';
+        'organization';
     };
 };
 ```
@@ -100,7 +99,7 @@ A more cleaner way approach was suggested by `jimpex` on [surrealdb discord](htt
 
 ```sql
 DEFINE FIELD owner ON repository TYPE record<user | organization>;
-DEFINE FIELD owner_type ON repository VALUE meta::tb(owner); 
+DEFINE FIELD owner_type ON repository VALUE record::tb(owner);
 
 CREATE ONLY repository SET owner = user:andy;
 CREATE ONLY repository SET owner = organization:dunder_mifflin;

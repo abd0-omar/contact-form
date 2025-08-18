@@ -100,12 +100,11 @@ to enforce the XOR constraint.</p>
 <span class="line"><span style="color:#F97583">    ELSE</span><span style="color:#F97583"> IF</span><span style="color:#E1E4E8"> user </span><span style="color:#F97583">!=</span><span style="color:#F97583"> NONE</span><span style="color:#F97583"> AND</span><span style="color:#E1E4E8"> organization </span><span style="color:#F97583">!=</span><span style="color:#F97583"> NONE</span><span style="color:#E1E4E8"> {</span></span>
 <span class="line"><span style="color:#F97583">        THROW</span><span style="color:#9ECBFF"> "a repository cannot have both a user and an organization owner"</span><span style="color:#E1E4E8">;</span></span>
 <span class="line"><span style="color:#E1E4E8">    };</span></span>
-<span class="line"></span>
 <span class="line"><span style="color:#6A737D">    -- 3. (Optional) If validation passes, return the owner type</span></span>
-<span class="line"><span style="color:#F97583">    IF</span><span style="color:#E1E4E8"> user </span><span style="color:#F97583">!=</span><span style="color:#F97583"> NONE</span><span style="color:#E1E4E8"> {</span></span>
-<span class="line"><span style="color:#F97583">        RETURN</span><span style="color:#9ECBFF"> 'user'</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">    RETURN</span><span style="color:#F97583"> IF</span><span style="color:#E1E4E8"> user </span><span style="color:#F97583">!=</span><span style="color:#F97583"> NONE</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#9ECBFF">        'user'</span><span style="color:#E1E4E8">;</span></span>
 <span class="line"><span style="color:#E1E4E8">    } </span><span style="color:#F97583">ELSE</span><span style="color:#E1E4E8"> {</span></span>
-<span class="line"><span style="color:#F97583">        RETURN</span><span style="color:#9ECBFF"> 'organization'</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#9ECBFF">        'organization'</span><span style="color:#E1E4E8">;</span></span>
 <span class="line"><span style="color:#E1E4E8">    };</span></span>
 <span class="line"><span style="color:#E1E4E8">};</span></span></code></pre>
 <h3 id="testing">Testing</h3>
@@ -135,7 +134,7 @@ to enforce the XOR constraint.</p>
 <h2 id="surrealdb-cleaner-solution">SurrealDB Cleaner Solution</h2>
 <p>A more cleaner way approach was suggested by <code>jimpex</code> on <a href="https://discord.com/channels/902568124350599239/970338835990974484/1406455766952444038">surrealdb discord</a>.</p>
 <pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="sql"><code><span class="line"><span style="color:#E1E4E8">DEFINE FIELD </span><span style="color:#F97583">owner</span><span style="color:#F97583"> ON</span><span style="color:#E1E4E8"> repository </span><span style="color:#F97583">TYPE</span><span style="color:#E1E4E8"> record</span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8">user | organization</span><span style="color:#F97583">></span><span style="color:#E1E4E8">;</span></span>
-<span class="line"><span style="color:#E1E4E8">DEFINE FIELD owner_type </span><span style="color:#F97583">ON</span><span style="color:#E1E4E8"> repository </span><span style="color:#F97583">VALUE</span><span style="color:#E1E4E8"> meta::tb(</span><span style="color:#F97583">owner</span><span style="color:#E1E4E8">); </span></span>
+<span class="line"><span style="color:#E1E4E8">DEFINE FIELD owner_type </span><span style="color:#F97583">ON</span><span style="color:#E1E4E8"> repository </span><span style="color:#F97583">VALUE</span><span style="color:#E1E4E8"> record::tb(</span><span style="color:#F97583">owner</span><span style="color:#E1E4E8">);</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#F97583">CREATE</span><span style="color:#E1E4E8"> ONLY repository </span><span style="color:#F97583">SET</span><span style="color:#F97583"> owner</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> user:andy;</span></span>
 <span class="line"><span style="color:#F97583">CREATE</span><span style="color:#E1E4E8"> ONLY repository </span><span style="color:#F97583">SET</span><span style="color:#F97583"> owner</span><span style="color:#F97583"> =</span><span style="color:#E1E4E8"> organization:dunder_mifflin;</span></span>
