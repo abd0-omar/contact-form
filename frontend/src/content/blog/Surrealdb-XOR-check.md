@@ -13,7 +13,6 @@ both simultaneously or neither. This is known as an XOR or "either/or" constrain
 
 ![xor boxes](../../assets/box-svg.svg)
 
-
 ## Arc Relationship
 This scenario is also known as an Arc Relationship in Entity Relationship modeling.
 In ER Diagram, it is shown by drawing an arc across the relationship lines,
@@ -21,10 +20,7 @@ hence the name arc relationship.
 
 ![arc diagram](../../assets/arc-svg-final.svg)
 
-
 ## SurrealDB
-
-
 
 ### The Complete Schema
 
@@ -41,8 +37,8 @@ DEFINE FIELD user ON repository TYPE option<record<user>>;
 DEFINE FIELD organization ON repository TYPE option<record<organization>>;
 ```
 
-
 ### Defining the XOR check
+
 ```sql
 -- Fields in surrealdb are represented as a key-value pair
 -- `VALUE` is used to get the raw "value" of the field and omitting the "key"
@@ -95,7 +91,7 @@ you can play around with it more by copying and pasting the code into
 
 ## SurrealDB Cleaner Solution
 
-A more cleaner way approach was suggested by `jimpex` on [surrealdb discord](https://discord.com/channels/902568124350599239/970338835990974484/1406455766952444038).
+A cleaner way approach was suggested by `jimpex` on [surrealdb discord](https://discord.com/channels/902568124350599239/970338835990974484/1406455766952444038).
 
 ```sql
 DEFINE FIELD owner ON repository TYPE record<user | organization>;
